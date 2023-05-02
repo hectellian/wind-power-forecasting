@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "wind-power-forecasting"
+version = "0.1.0"
+description = "Data Mining Project for the WPF using 3 different models"
+authors = ["Christoforou Anthony <christoforouanthony@gmail.com>"]
+license = "GNU General Public License v3.0"
+readme = "README.md"
+packages = [{include = "wind_power_forecasting"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
