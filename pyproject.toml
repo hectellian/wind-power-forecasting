@@ -2,7 +2,7 @@
 name = "wind-power-forecasting"
 version = "0.1.0"
 description = "Data Mining Project for the WPF using 3 different models"
-authors = ["Christoforou Anthony <christoforouanthony@gmail.com>"]
+authors = ["Christoforou Anthony <Anthony.Christoforou@etu.unige.ch>", "Arm Ethan <Ethan.Arm@etu.unige.ch>"]
 license = "GNU General Public License v3.0"
 readme = "README.md"
 packages = [{include = "wind_power_forecasting"}]
