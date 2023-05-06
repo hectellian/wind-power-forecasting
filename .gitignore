@@ -3,6 +3,20 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+### Data ###
+*.csv
+*.dat
+*.efx
+*.gbr
+*.key
+*.pps
+*.ppt
+*.pptx
+*.sdf
+*.tax2010
+*.vcf
+*.xml
+
 # C extensions
 *.so
 
