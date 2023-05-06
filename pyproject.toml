@@ -16,3 +16,6 @@ torch = "^2.0.0"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+forecast = "wind_power_forecasting.main:main"
