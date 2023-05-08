@@ -72,6 +72,7 @@ class WindDataset(torch.utils.data.Dataset):
         # Handle missing values
         self.merged_data = self.merged_data.dropna() # Remove rows with missing values
         self.merged_data.iloc[:, -5:] = self.merged_data.iloc[:, -5:].clip(lower=0) # Replace negative values with 0
+        print(self.merged_data)
     
     def __len__(self):
         """Returns the number of samples.
@@ -100,8 +101,8 @@ class WindDataset(torch.utils.data.Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        sample = self.merged_data.iloc[idx, 1:-1].values  # Exclude TurbID and labels column
-        label = self.merged_data.iloc[idx, -1]
+        sample = self.merged_data.iloc[idx, self.merged_data.columns != 'Patv'].values  # Exclude TurbID and labels column
+        label = self.merged_data.iloc[idx, -3]
         
         if self.transform:
             features = self.transform(features)
