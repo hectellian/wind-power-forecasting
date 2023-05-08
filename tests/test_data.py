@@ -23,12 +23,12 @@ import urllib.request
 import pytest
 
 # Modules
-from wind_power_forecasting.data import WindDataset
+from wind_power_forecasting.data import CustomWindFarmDataset
 
 class TestWindDataset:
     data_dir = "./wind_power_forecasting/data/wtbdata_245days.csv"
     relative_position_file = "./wind_power_forecasting/data/sdwpf_baidukddcup2022_turb_location.CSV"
-    dataset = WindDataset(data_dir, relative_position_file)
+    dataset = CustomWindFarmDataset(data_dir, relative_position_file)
     train_dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
     train_features, train_labels = next(iter(train_dataloader))
 
