@@ -20,7 +20,7 @@ __version__ = "0.0.1"
 import torch
 import pandas as pd
 
-class WindDataset(torch.utils.data.Dataset):
+class CustomWindFarmDataset(torch.utils.data.Dataset):
     """A class to load the wind power production data.
 
     Attributes
@@ -72,7 +72,6 @@ class WindDataset(torch.utils.data.Dataset):
         # Handle missing values
         self.merged_data = self.merged_data.dropna() # Remove rows with missing values
         self.merged_data.iloc[:, -5:] = self.merged_data.iloc[:, -5:].clip(lower=0) # Replace negative values with 0
-        print(self.merged_data)
     
     def __len__(self):
         """Returns the number of samples.
@@ -101,7 +100,7 @@ class WindDataset(torch.utils.data.Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        sample = self.merged_data.iloc[idx, self.merged_data.columns != 'Patv'].values  # Exclude TurbID and labels column
+        sample = self.merged_data.iloc[idx, self.merged_data.columns != 'Patv'].values  # Exclude labels column
         label = self.merged_data.iloc[idx, -3]
         
         if self.transform:

@@ -19,6 +19,7 @@ __version__ = "0.0.1"
 
 # Libraries
 import os
+from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -26,8 +27,7 @@ import pandas as pd
 import urllib.request
 
 # Modules
-from .data import WindDataset
-from .utils.progressbar import ProgressBar
+from .data import CustomWindFarmDataset
 
 # Functions
 def download_data(url: str, filename: str):
@@ -39,12 +39,17 @@ def download_data(url: str, filename: str):
     if not os.path.exists(filename):
         if not os.path.exists(os.path.dirname(data_dir)):
             os.makedirs(os.path.dirname(data_dir))
+            
         print(f"Downloading {filename}...")
-        urllib.request.urlretrieve(url, filename, ProgressBar())
+        
+        with tqdm(unit="B", unit_scale=True, miniters=1, desc=filename) as progress_bar:
+            urllib.request.urlretrieve(url, filename=filename, reporthook=lambda block_num, block_size, total_size: progress_bar.update(block_num * block_size - progress_bar.n))
+            
         print(f"{filename} downloaded.")
+        
     else:
         print(f"{filename} already exists.")
-
+    
 def main():
     """ Main function of the project.
     """
@@ -71,12 +76,13 @@ def main():
     print(f"Using {device} device.")
     
     # Load the dataset
-    dataset = WindDataset(data_dir, relative_position_file)
+    dataset = CustomWindFarmDataset(data_dir, relative_position_file)
     
-    train_dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [int(len(dataset)*0.8), len(dataset) - int(len(dataset)*0.8)]) # 80% train, 20% test
+    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
     # Print the dataset
-    print(f"Dataset length: {len(dataset)}")
+    print(f"Dataset length: {len(train_dataset)}")
 
     train_features, train_labels = next(iter(train_dataloader))
     print(f"Feature batch shape: {train_features.size()}")
