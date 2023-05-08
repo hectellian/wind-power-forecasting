@@ -21,6 +21,7 @@ __version__ = "0.0.1"
 import os
 import torch
 from torch.utils.data import DataLoader
+from torchvision import transforms
 import pandas as pd
 import urllib.request
 
@@ -29,7 +30,7 @@ from .data import WindDataset
 from .utils.progressbar import ProgressBar
 
 # Functions
-def download_data(url, filename):
+def download_data(url: str, filename: str):
     """Download datasets from the internet if they are not already present.
     """
     
@@ -66,16 +67,26 @@ def main():
         if torch.backends.mps.is_available()
         else "cpu"
     )
+
+    print(f"Using {device} device.")
     
     # Load the dataset
     dataset = WindDataset(data_dir, relative_position_file)
-    # We take the first 100 samples just to test the code
-    dataset = dataset[:100]
     
-    dataloader = DataLoader(dataset, batch_size=20, shuffle=False)
-    
-    print(dataset)
+    train_dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+    # Print the dataset
     print(f"Dataset length: {len(dataset)}")
+
+    train_features, train_labels = next(iter(train_dataloader))
+    print(f"Feature batch shape: {train_features.size()}")
+    print(f"Labels batch shape: {train_labels.size()}")
+
+    # Print features and labels
+    print("First 5 features:")
+    print(train_features[:5])
+    print("First 5 labels:")
+    print(train_labels[:5])
     
     
 if __name__ == "__main__":

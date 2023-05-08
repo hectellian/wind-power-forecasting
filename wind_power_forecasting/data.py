@@ -61,13 +61,24 @@ class WindDataset(torch.utils.data.Dataset):
         self.relative_positions = pd.read_csv(relative_position_file)
         self.transform = transform
         self.target_transform = target_transform
+
+        # Merge the data and relative positions
+        self.merged_data = pd.merge(self.data, self.relative_positions, on='TurbID')
+
+        # Convert days to continuous minutes
+        self.merged_data["Tmstamp"] = pd.to_datetime(self.merged_data["Tmstamp"], format='%H:%M')
+        self.merged_data["Tmstamp"] = self.merged_data["Tmstamp"].dt.hour * 60 + self.merged_data["Tmstamp"].dt.minute
+
+        # Handle missing values
+        self.merged_data = self.merged_data.dropna() # Remove rows with missing values
+        self.merged_data.iloc[:, -5:] = self.merged_data.iloc[:, -5:].clip(lower=0) # Replace negative values with 0
     
     def __len__(self):
         """Returns the number of samples.
         """
-        return len(self.data)
+        return len(self.merged_data)
     
-    def __getitem__(self, index):
+    def __getitem__(self, idx):
         """Returns the sample of the dataset at the given index.
 
         Parameters
@@ -86,13 +97,15 @@ class WindDataset(torch.utils.data.Dataset):
         
         Notes
         """
-        labels = self.data.iloc[index, -1]
-        features = self.data.iloc[index, :-1]
-        relative_position = self.relative_positions.iloc[index, :]
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+
+        sample = self.merged_data.iloc[idx, 1:-1].values  # Exclude TurbID and labels column
+        label = self.merged_data.iloc[idx, -1]
         
         if self.transform:
             features = self.transform(features)
         if self.target_transform:
             labels = self.target_transform(labels)
             
-        return features, labels, relative_position
+        return torch.tensor(sample, dtype=torch.float64), torch.tensor(label, dtype=torch.float64)
