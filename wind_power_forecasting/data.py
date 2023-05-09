@@ -29,6 +29,10 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         The data loaded from the data file.
     relative_positions : pandas.DataFrame
         The relative positions loaded from the relative position file.
+    merged_data : pandas.DataFrame
+        The merged data and relative positions.
+    device : str, optional
+        The device to use for the data.
     transform : callable, optional
         A function/transform that takes in a sample and returns a transformed
         version.
@@ -42,7 +46,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
     __getitem__(index)
         Returns one sample of the dataset.
     """
-    def __init__(self, data_dir, relative_position_file, transform=None, target_transform=None):
+    def __init__(self, data_dir, relative_position_file, device='cpu', transform=None, target_transform=None):
         """Constructs all the necessary attributes for the Dataset object.
 
         Parameters
@@ -51,6 +55,8 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
             The path to the data file.
         relative_position_file : str
             The path to the relative position file.
+        device : str, optional
+            The device to use for the data.
         transform : callable, optional
             A function/transform that takes in a sample and returns a transformed
             version.
@@ -59,6 +65,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         """
         self.data = pd.read_csv(data_dir)
         self.relative_positions = pd.read_csv(relative_position_file)
+        self.device = device
         self.transform = transform
         self.target_transform = target_transform
 
@@ -108,4 +115,4 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         if self.target_transform:
             labels = self.target_transform(labels)
             
-        return torch.tensor(sample, dtype=torch.float64), torch.tensor(label, dtype=torch.float64)
+        return torch.tensor(sample, dtype=torch.float64, device=self.device), torch.tensor(label, dtype=torch.float64, device=self.device)

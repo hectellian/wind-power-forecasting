@@ -76,7 +76,7 @@ def main():
     print(f"Using {device} device.")
     
     # Load the dataset
-    dataset = CustomWindFarmDataset(data_dir, relative_position_file)
+    dataset = CustomWindFarmDataset(data_dir, relative_position_file, device=device)
     
     train_dataset, test_dataset = torch.utils.data.random_split(dataset, [int(len(dataset)*0.8), len(dataset) - int(len(dataset)*0.8)]) # 80% train, 20% test
     train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
