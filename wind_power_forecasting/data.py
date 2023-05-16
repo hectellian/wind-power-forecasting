@@ -115,4 +115,4 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         if self.target_transform:
             labels = self.target_transform(labels)
             
-        return torch.tensor(sample, dtype=torch.float64, device=self.device), torch.tensor(label, dtype=torch.float64, device=self.device)
+        return torch.tensor(sample, dtype=torch.float, device=self.device), torch.tensor(label, dtype=torch.float, device=self.device)

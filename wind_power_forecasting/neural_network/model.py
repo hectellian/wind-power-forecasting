@@ -23,18 +23,41 @@ from torch import nn
 import pandas as pd
 
 class NeuralNetwork(nn.Module):
+    """Neural network class.
+    
+    Attributes
+    ----------
+    flatten : nn.Flatten
+        The flatten layer.
+    linear_relu_stack : nn.Sequential
+        The sequential layer.
+
+    Methods
+    -------
+    forward(x)
+        Forward pass.
+    """
     def __init__(self):
-        super().__init__()
-        self.flatten = nn.Flatten()
+        """Constructs all the necessary attributes for the NeuralNetwork object.
+        """
+        super(NeuralNetwork, self).__init__()
+        #self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(245, 512),
+            nn.Linear(14, 512),
             nn.ReLU(),
             nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Linear(512, 10),
+            nn.Linear(512, 1),
         )
         
     def forward(self, x):
-        x = self.flatten(x)
+        """Forward pass.
+        
+        Returns
+        -------
+        logits : torch.Tensor
+            The output tensor.
+        """
+        #x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits

@@ -21,6 +21,7 @@ __version__ = "0.0.1"
 import os
 from tqdm import tqdm
 import torch
+from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import pandas as pd
@@ -28,6 +29,7 @@ import urllib.request
 
 # Modules
 from .data import CustomWindFarmDataset
+from .neural_network.model import NeuralNetwork
 
 # Functions
 def download_data(url: str, filename: str):
@@ -75,11 +77,21 @@ def main():
 
     print(f"Using {device} device.")
     
+    # hyperparameters
+    LEARNING_RATE = 1e-3
+    BATCH_SIZE = 64
+    EPOCHS = 5
+    
     # Load the dataset
     dataset = CustomWindFarmDataset(data_dir, relative_position_file, device=device)
+
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [int(len(dataset)*0.8), int(len(dataset)*0.2)]) # 80% train, 20% test
+
+    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
     
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [int(len(dataset)*0.8), len(dataset) - int(len(dataset)*0.8)]) # 80% train, 20% test
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    # Load the model
+    nn_model = NeuralNetwork().to(device)
 
     # Print the dataset
     print(f"Dataset length: {len(train_dataset)}")
@@ -94,6 +106,8 @@ def main():
     print("First 5 labels:")
     print(train_labels[:5])
     
+    # Print model
+    print(nn_model)
     
 if __name__ == "__main__":
     main()
