@@ -22,7 +22,7 @@ import torch
 from torch import nn
 import pandas as pd
 
-class NeuralNetwork(nn.Module):
+class WindLSTM(nn.Module):
     """Neural network class.
     
     Attributes

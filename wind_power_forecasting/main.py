@@ -29,7 +29,7 @@ import urllib.request
 
 # Modules
 from .data import CustomWindFarmDataset
-from .neural_network.model import NeuralNetwork
+from .neural_network.model import WindLSTM
 
 # Functions
 def download_data(url: str, filename: str):
@@ -78,6 +78,7 @@ def main():
     print(f"Using {device} device.")
     
     # hyperparameters
+    NUM_LAYERS = 50
     LEARNING_RATE = 1e-3
     BATCH_SIZE = 64
     EPOCHS = 5
@@ -85,11 +86,17 @@ def main():
     # Load the dataset
     dataset = CustomWindFarmDataset(data_dir, relative_position_file, device=device)
     
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [int(len(dataset)*0.8), len(dataset) - int(len(dataset)*0.8)]) # 80% train, 20% test
-    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    # Created using indices from 0 to train_size.
+    train_dataset = torch.utils.data.Subset(dataset, range(int(len(dataset)*0.8)))
+
+    # Created using indices from train_size to train_size + test_size.
+    test_dataset = torch.utils.data.Subset(dataset, range(int(len(dataset)*0.8), int(len(dataset)*0.8) + (len(dataset) - int(len(dataset)*0.8))))
+
+    # Create the dataloaders
+    train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
     # Load the model
-    nn_model = NeuralNetwork().to(device)
+    nn_model = WindLSTM().to(device)
 
     # Print the dataset
     print(f"Dataset length: {len(train_dataset)}")
