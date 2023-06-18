@@ -70,20 +70,52 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         self.target_transform = target_transform
 
         # Merge the data and relative positions
-        self.merged_data = pd.merge(self.data, self.relative_positions, on='TurbID')
+        #self.merged_data = pd.merge(self.data, self.relative_positions, on='TurbID')
 
         # Convert days to continuous minutes
-        self.merged_data["Tmstamp"] = pd.to_datetime(self.merged_data["Tmstamp"], format='%H:%M')
-        self.merged_data["Tmstamp"] = self.merged_data["Tmstamp"].dt.hour * 60 + self.merged_data["Tmstamp"].dt.minute
+        self.data["Tmstamp"] = pd.to_datetime(self.data["Tmstamp"], format='%H:%M')
+        self.data["Tmstamp"] = self.data["Tmstamp"].dt.hour * 60 + self.data["Tmstamp"].dt.minute
+        self.data.drop('Day', axis=1)
 
         # Handle missing values
-        self.merged_data = self.merged_data.dropna() # Remove rows with missing values
-        self.merged_data.iloc[:, -5:] = self.merged_data.iloc[:, -5:].clip(lower=0) # Replace negative values with 0
+        self.data = self.data.dropna() # Remove rows with missing values
+
+        # Handle Unkown values
+        self.data.drop(self.data[(self.data["Patv"] <= 0) & (self.data["Wspd"] > 2.5)].index)
+        self.data.drop(self.data[(self.data["Pab1"] > 89) | (self.data["Pab2"] > 89) | (self.data["Pab3"] > 89)].index)
+
+        # Handle Abnormal values
+        self.data.drop(self.data[(self.data["Ndir"] < -720) & (self.data["Ndir"] > 720)].index)
+        self.data.drop(self.data[(self.data["Wdir"] < -180) & (self.data["Wdir"] > 180)].index)
+
+        self.data.iloc[:, -2:] = self.data.iloc[:, -5:].clip(lower=0) # Replace negative values with 0
+
+        # Correlation matrix
+        correlation_matrix = self.data.corr()
+        patv_correlations = correlation_matrix["Patv"]
+
+    def correlations(self, target):
+        """Return the correlations of all the features with the target feature
+        
+        Parameters
+        ----------
+        target : srt
+            target column name
+            
+        Returns
+        -------
+        target_correlations : pandas.Series
+            correlation with target feature
+        """
+        correlation_matrix = self.data.corr()
+        target_correlations = correlation_matrix[target]
+
+        return target_correlations
     
     def __len__(self):
         """Returns the number of samples.
         """
-        return len(self.merged_data)
+        return len(self.data)
     
     def __getitem__(self, idx):
         """Returns the sample of the dataset at the given index.
@@ -107,8 +139,8 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        sample = self.merged_data.iloc[idx, self.merged_data.columns != 'Patv'].values  # Exclude labels column
-        label = self.merged_data.iloc[idx, -3]
+        sample = self.data.iloc[idx, :-1].values  # Exclude labels column
+        label = self.data.iloc[idx, -1]
         
         if self.transform:
             features = self.transform(features)

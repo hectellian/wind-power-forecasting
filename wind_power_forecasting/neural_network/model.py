@@ -40,7 +40,7 @@ class WindLSTM(nn.Module):
     def __init__(self):
         """Constructs all the necessary attributes for the NeuralNetwork object.
         """
-        super(NeuralNetwork, self).__init__()
+        super(WindLSTM, self).__init__()
         #self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(14, 512),

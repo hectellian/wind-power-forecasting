@@ -85,6 +85,8 @@ def main():
     
     # Load the dataset
     dataset = CustomWindFarmDataset(data_dir, relative_position_file, device=device)
+    patv_correlations = dataset.correlations("Patv")
+    print("Correlations : ", patv_correlations)
     
     # Created using indices from 0 to train_size.
     train_dataset = torch.utils.data.Subset(dataset, range(int(len(dataset)*0.8)))
@@ -107,9 +109,9 @@ def main():
 
     # Print features and labels
     print("First 5 features:")
-    print(train_features[:5])
+    print(train_features[:20])
     print("First 5 labels:")
-    print(train_labels[:5])
+    print(train_labels[:20])
     
     # Print model
     print(nn_model)
