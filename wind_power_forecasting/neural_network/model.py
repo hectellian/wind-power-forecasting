@@ -31,24 +31,37 @@ class WindLSTM(nn.Module):
         The flatten layer.
     linear_relu_stack : nn.Sequential
         The sequential layer.
+    hidden_size : int
+        Number of hidden layers.
+    layer_num : int
+        Size of layers.
 
     Methods
     -------
     forward(x)
         Forward pass.
     """
-    def __init__(self):
+    def __init__(self, input_size, hidden_size, layer_num, output_size):
         """Constructs all the necessary attributes for the NeuralNetwork object.
+        
+        Parameters
+        ----------
+        input_size : int
+            Number of input features.
+        hidden_size : int
+            Number of hidden layers.
+        layer_num : int
+            Size of layers.
+        output_size : int
+            Number of outputs.
         """
         super(WindLSTM, self).__init__()
-        #self.flatten = nn.Flatten()
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear(14, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 1),
-        )
+        
+        self.hidden_size = hidden_size
+        self.layer_num = layer_num
+        
+        self.lstm = nn.LSTM(input_size, hidden_size, layer_num, batch_first=True) # batch_first=True causes input/output tensors to be of shape (batch_dim, seq_dim, input_size)
+        self.fc = nn.Linear(hidden_size, output_size)
         
     def forward(self, x):
         """Forward pass.
@@ -58,6 +71,10 @@ class WindLSTM(nn.Module):
         logits : torch.Tensor
             The output tensor.
         """
-        #x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
-        return logits
+        h0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_()
+        c0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_()
+        
+        out, (hn, cn) = self.lstm(x, (h0.detach(), c0.detach()))
+        out = self.fc(out[:, -1, :])
+        
+        return out
