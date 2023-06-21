@@ -29,8 +29,6 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         The data loaded from the data file.
     relative_positions : pandas.DataFrame
         The relative positions loaded from the relative position file.
-    merged_data : pandas.DataFrame
-        The merged data and relative positions.
     device : str, optional
         The device to use for the data.
     transform : callable, optional
@@ -75,7 +73,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         # Convert days to continuous minutes
         self.data["Tmstamp"] = pd.to_datetime(self.data["Tmstamp"], format='%H:%M')
         self.data["Tmstamp"] = self.data["Tmstamp"].dt.hour * 60 + self.data["Tmstamp"].dt.minute
-        self.data.drop('Day', axis=1)
+        self.data = self.data.drop('Day', axis=1)
 
         # Handle missing values
         self.data = self.data.dropna() # Remove rows with missing values
@@ -88,11 +86,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         self.data.drop(self.data[(self.data["Ndir"] < -720) & (self.data["Ndir"] > 720)].index)
         self.data.drop(self.data[(self.data["Wdir"] < -180) & (self.data["Wdir"] > 180)].index)
 
-        self.data.iloc[:, -2:] = self.data.iloc[:, -5:].clip(lower=0) # Replace negative values with 0
-
-        # Correlation matrix
-        correlation_matrix = self.data.corr()
-        patv_correlations = correlation_matrix["Patv"]
+        self.data.iloc[:, -2:] = self.data.iloc[:, -2:].clip(lower=0) # Replace negative values with 0
 
     def correlations(self, target):
         """Return the correlations of all the features with the target feature
@@ -139,12 +133,12 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        sample = self.data.iloc[idx, :-1].values  # Exclude labels column
-        label = self.data.iloc[idx, -1]
+        sequence = self.data.iloc[idx, :-1].values  # Exclude labels column
+        target = self.data.iloc[idx, -1]
         
         if self.transform:
             features = self.transform(features)
         if self.target_transform:
             labels = self.target_transform(labels)
             
-        return torch.tensor(sample, dtype=torch.float, device=self.device), torch.tensor(label, dtype=torch.float, device=self.device)
+        return torch.tensor(sequence, dtype=torch.float, device=self.device), torch.tensor(target, dtype=torch.float, device=self.device)

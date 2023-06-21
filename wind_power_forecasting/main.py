@@ -30,6 +30,7 @@ import urllib.request
 # Modules
 from .data import CustomWindFarmDataset
 from .neural_network.model import WindLSTM
+from .urls import data_url, relative_position_url, data_dir, relative_position_file
 
 # Functions
 def download_data(url: str, filename: str):
@@ -57,12 +58,6 @@ def main():
     """
     
     # Download the data if it is not already present
-    data_url = "https://bj.bcebos.com/v1/ai-studio-online/85b5cb4eea5a4f259766f42a448e2c04a7499c43e1ae4cc28fbdee8e087e2385?responseContentDisposition=attachment%3B%20filename%3Dwtbdata_245days.csv&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2022-05-05T14%3A17%3A03Z%2F-1%2F%2F5932bfb6aa3af1bcfb467bf2a4a6877f8823fe96c6f4fd0d4a3caa722354e3ac"
-    relative_position_url = "https://bj.bcebos.com/v1/ai-studio-online/e927ce742c884955bf2a667929d36b2ef41c572cd6e245fa86257ecc2f7be7bc?responseContentDisposition=attachment%3B%20filename%3Dsdwpf_baidukddcup2022_turb_location.CSV&authorization=bce-auth-v1%2F0ef6765c1e494918bc0d4c3ca3e5c6d1%2F2022-04-11T08%3A27%3A09Z%2F-1%2F%2Fcf377452dbd186873680f2f0fe39200b3de86083a036da220ab8a02abc5a8032"
-    
-    data_dir = "./wind_power_forecasting/data/wtbdata_245days.csv"
-    relative_position_file = "./wind_power_forecasting/data/sdwpf_baidukddcup2022_turb_location.CSV"
-    
     download_data(data_url, data_dir)
     download_data(relative_position_url, relative_position_file)
     
@@ -78,10 +73,13 @@ def main():
     print(f"Using {device} device.")
     
     # hyperparameters
-    NUM_LAYERS = 50
+    INPUT_SIZE = 12
+    HIDDEN_SIZE = 50
+    OUTPUT_SIZE = 1
+    NUM_LAYERS = 1
     LEARNING_RATE = 1e-3
-    BATCH_SIZE = 64
-    EPOCHS = 5
+    BATCH_SIZE = 16
+    EPOCHS = [5, 10, 50, 100, 200, 500, 1000]
     
     # Load the dataset
     dataset = CustomWindFarmDataset(data_dir, relative_position_file, device=device)
@@ -95,23 +93,23 @@ def main():
     test_dataset = torch.utils.data.Subset(dataset, range(int(len(dataset)*0.8), int(len(dataset)*0.8) + (len(dataset) - int(len(dataset)*0.8))))
 
     # Create the dataloaders
-    train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
     
     # Load the model
-    nn_model = WindLSTM().to(device)
+    nn_model = WindLSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE).to(device)
 
     # Print the dataset
-    print(f"Dataset length: {len(train_dataset)}")
+    print(f"Train Dataset length: {len(train_dataset)}")
 
-    train_features, train_labels = next(iter(train_dataloader))
-    print(f"Feature batch shape: {train_features.size()}")
-    print(f"Labels batch shape: {train_labels.size()}")
+    train_sequence, train_target = next(iter(train_dataloader))
+    print(f"Sequence batch shape: {train_sequence.size()}")
+    print(f"Target batch shape: {train_target.size()}")
 
-    # Print features and labels
-    print("First 5 features:")
-    print(train_features[:20])
-    print("First 5 labels:")
-    print(train_labels[:20])
+    # Print sequence and target
+    print("First 5 sequences:")
+    print(train_sequence[:20])
+    print("First 5 targets:")
+    print(train_target[:20])
     
     # Print model
     print(nn_model)
