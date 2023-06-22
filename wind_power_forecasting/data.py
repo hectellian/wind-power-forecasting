@@ -88,6 +88,9 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         self.data.drop(self.data[(self.data["Wdir"] < -180) & (self.data["Wdir"] > 180)].index)
 
         self.data.iloc[:, -2:] = self.data.iloc[:, -2:].clip(lower=0) # Replace negative values with 0
+        
+        # Reset index
+        self.data = self.data.reset_index(drop=True)
 
     def correlations(self, target):
         """Return the correlations of all the sequence with the target feature
