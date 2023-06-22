@@ -19,6 +19,7 @@ torchvision = "^0.15.1"
 torchaudio = "^2.0.1"
 tqdm = "^4.65.0"
 joblib = "^1.2.0"
+scikit-learn = "^1.2.2"
 
 [build-system]
 requires = ["poetry-core"]

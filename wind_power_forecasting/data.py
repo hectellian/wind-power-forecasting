@@ -18,6 +18,7 @@ __version__ = "0.0.1"
 
 # Libraries
 import torch
+import numpy as np
 import pandas as pd
 
 class CustomWindFarmDataset(torch.utils.data.Dataset):
@@ -89,7 +90,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         self.data.iloc[:, -2:] = self.data.iloc[:, -2:].clip(lower=0) # Replace negative values with 0
 
     def correlations(self, target):
-        """Return the correlations of all the features with the target feature
+        """Return the correlations of all the sequence with the target feature
         
         Parameters
         ----------
@@ -121,9 +122,9 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
             
         Returns
         -------
-        features : pandas.Series
-            The features of the sample.
-        labels : pandas.Series
+        sequence : pandas.Series
+            The sequence features of the sample.
+        target : pandas.Series
             The label of the sample. (The wind power production)
         relative_position : pandas.Series
             The relative position of the sample.
@@ -133,12 +134,12 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        sequence = self.data.iloc[idx, :-1].values  # Exclude labels column
-        target = self.data.iloc[idx, -1]
+        sequence = np.array([self.data.loc[idx, ~self.data.columns.isin(['Patv'])].values])  # Exclude target column
+        target = self.data.loc[idx, 'Patv']
         
         if self.transform:
-            features = self.transform(features)
+            sequence = self.transform(sequence)
         if self.target_transform:
-            labels = self.target_transform(labels)
+            target = self.target_transform(target)
             
         return torch.tensor(sequence, dtype=torch.float, device=self.device), torch.tensor(target, dtype=torch.float, device=self.device)
