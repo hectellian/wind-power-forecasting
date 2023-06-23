@@ -19,17 +19,18 @@ __version__ = "0.0.1"
 
 # Libraries
 import os
-from tqdm import tqdm
 import torch
-from torch import nn
+import numpy as np
+from tqdm import tqdm
+from torch import nn, optim
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from torchvision import transforms
-import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import urllib.request
 
 # Modules
 from .data import CustomWindFarmDataset
-from .neural_network.model import WindLSTM
+from .models.neural_network.model import LSTM
 from .urls import data_url, relative_position_url, data_dir, relative_position_file
 
 # Functions
@@ -73,33 +74,48 @@ def main():
     print(f"Using {device} device.")
     
     # hyperparameters
-    INPUT_SIZE = 12
-    HIDDEN_SIZE = 50
+    SEQ_LEN = 1
+    INPUT_SIZE = 11
+    HIDDEN_SIZE = 8
     OUTPUT_SIZE = 1
     NUM_LAYERS = 1
-    LEARNING_RATE = 1e-3
     BATCH_SIZE = 16
-    EPOCHS = [5, 10, 50, 100, 200, 500, 1000]
+    LEARNING_RATE = 1e-3
+    EPOCHS = 2000
+    
+    # Transforms
+    transform = StandardScaler().fit_transform
+    target_transform = MinMaxScaler().fit_transform
     
     # Load the dataset
-    dataset = CustomWindFarmDataset(data_dir, relative_position_file, device=device)
+    dataset = CustomWindFarmDataset(data_dir, relative_position_file, q=SEQ_LEN, device=device)
     patv_correlations = dataset.correlations("Patv")
     print("Correlations : ", patv_correlations)
     
+    # split the data into train and test sets and validation sets
+    split_size = 0.8 # 80% of the dataset for training
+    split_frac = 0.5 # 50% of the remaining 20% of the dataset for validation
+    train_size = int(len(dataset)*split_size)
+    val_size = int((len(dataset) - train_size)*split_frac)
+    
     # Created using indices from 0 to train_size.
-    train_dataset = torch.utils.data.Subset(dataset, range(int(len(dataset)*0.8)))
+    train_dataset = torch.utils.data.Subset(dataset, range(train_size))
+    
+    # Created using indices from train_size to train_size + val_size.
+    validation_dataset = torch.utils.data.Subset(dataset, range(train_size, train_size + val_size))
 
     # Created using indices from train_size to train_size + test_size.
-    test_dataset = torch.utils.data.Subset(dataset, range(int(len(dataset)*0.8), int(len(dataset)*0.8) + (len(dataset) - int(len(dataset)*0.8))))
+    test_dataset = torch.utils.data.Subset(dataset, range(train_size + val_size, len(dataset)))
 
     # Create the dataloaders
-    train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True).to(device)
+    validation_dataloader, test_dataloader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False).to(device)
     
-    # Load the model
-    nn_model = WindLSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE).to(device)
+    # Load the Neural Network model
+    nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE, device=device)
 
     # Print the dataset
-    print(f"Train Dataset length: {len(train_dataset)}")
+    print(f"Dataset length: {len(dataset)}")
 
     train_sequence, train_target = next(iter(train_dataloader))
     print(f"Sequence batch shape: {train_sequence.size()}")
@@ -107,12 +123,15 @@ def main():
 
     # Print sequence and target
     print("First 5 sequences:")
-    print(train_sequence[:20])
+    print(train_sequence[:5])
     print("First 5 targets:")
-    print(train_target[:20])
+    print(train_target[:5])
     
     # Print model
     print(nn_model)
+    
+    # Train the model
+    nn_model.train(train_dataloader, epochs=EPOCHS, record_freq=100)
     
 if __name__ == "__main__":
     main()

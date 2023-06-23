@@ -107,7 +107,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         print("Cleaning done.")
 
     def correlations(self, target):
-        """Return the correlations of all the features with the target feature
+        """Return the correlations of all the sequence with the target feature
         
         Parameters
         ----------
