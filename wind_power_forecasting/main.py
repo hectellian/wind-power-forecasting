@@ -30,7 +30,7 @@ import urllib.request
 
 # Modules
 from .data import CustomWindFarmDataset
-from neural_network import LSTM
+from .models.neural_network.model import LSTM
 from .urls import data_url, relative_position_url, data_dir, relative_position_file
 
 # Functions
@@ -74,14 +74,14 @@ def main():
     print(f"Using {device} device.")
     
     # hyperparameters
-    SEQ_LEN = 10
+    SEQ_LEN = 1
     INPUT_SIZE = 11
     HIDDEN_SIZE = 8
     OUTPUT_SIZE = 1
     NUM_LAYERS = 1
-    LEARNING_RATE = 1e-3
     BATCH_SIZE = 16
-    EPOCHS = 1000
+    LEARNING_RATE = 1e-3
+    EPOCHS = 2000
     
     # Transforms
     transform = StandardScaler().fit_transform
@@ -108,16 +108,14 @@ def main():
     test_dataset = torch.utils.data.Subset(dataset, range(train_size + val_size, len(dataset)))
 
     # Create the dataloaders
-    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    validation_dataloader, test_dataloader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True).to(device)
+    validation_dataloader, test_dataloader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False).to(device)
     
     # Load the Neural Network model
-    nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE).to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(nn_model.parameters(), lr=LEARNING_RATE)
+    nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE, device=device)
 
     # Print the dataset
-    print(f"Train Dataset length: {len(train_dataset)}")
+    print(f"Dataset length: {len(dataset)}")
 
     train_sequence, train_target = next(iter(train_dataloader))
     print(f"Sequence batch shape: {train_sequence.size()}")
@@ -132,43 +130,8 @@ def main():
     # Print model
     print(nn_model)
     
-    # See the output of the model without training
-    with torch.no_grad():
-        print(f'Without training: {nn_model(train_sequence)}')
-    
-    """  # Train the model
-    for epoch in range(EPOCHS):
-        for sequence, target in train_dataloader:
-            target = target.type(torch.LongTensor)
-            sequence, target = sequence.to(device), target.to(device)
-            optimizer.zero_grad()
-            
-            output = nn_model(sequence)
-            loss = criterion(output, target)
-            
-            loss.backward()
-            
-            optimizer.step()
-        if epoch % 100 == 0:
-            print(f"Epoch: {epoch}, loss: {loss.item()}")
-            
-    # See the output of the model after training
-    for sequence, target in test_dataloader:
-        target = target.type(torch.LongTensor)
-        sequence, target = sequence.to(device), target.to(device)
-        with torch.no_grad():
-            prediction = nn_model(sequence)
-            data_prediction = prediction.cpu().numpy()
-            dataY_plot = target.cpu().numpy()
-            
-            plt.figure(figsize=(20, 10))
-            plt.axvline(x=200, c='r', linestyle='--') #size of the training set
-            
-            plt.plot(dataY_plot, label='Actuall Data') #actual plot
-            plt.plot(data_prediction, label='Predicted Data') #predicted plot
-            plt.title('Wind Power Time-Series Prediction')
-            plt.legend()
-            plt.show()  """
+    # Train the model
+    nn_model.train(train_dataloader, epochs=EPOCHS, record_freq=100)
     
 if __name__ == "__main__":
     main()
