@@ -19,12 +19,13 @@ __version__ = "0.0.1"
 
 # Libraries
 import os
-from tqdm import tqdm
 import torch
-from torch import nn
+import numpy as np
+from tqdm import tqdm
+from torch import nn, optim
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from torchvision import transforms
-import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 import urllib.request
 
 # Modules
@@ -73,30 +74,46 @@ def main():
     print(f"Using {device} device.")
     
     # hyperparameters
-    INPUT_SIZE = 12
-    HIDDEN_SIZE = 50
+    INPUT_SIZE = 11
+    HIDDEN_SIZE = 8
     OUTPUT_SIZE = 1
     NUM_LAYERS = 1
     LEARNING_RATE = 1e-3
     BATCH_SIZE = 16
-    EPOCHS = [5, 10, 50, 100, 200, 500, 1000]
+    EPOCHS = 1000
+    
+    # Transforms
+    transform = StandardScaler().fit_transform
+    target_transform = MinMaxScaler().fit_transform
     
     # Load the dataset
     dataset = CustomWindFarmDataset(data_dir, relative_position_file, device=device)
     patv_correlations = dataset.correlations("Patv")
     print("Correlations : ", patv_correlations)
     
+    # split the data into train and test sets and validation sets
+    split_size = 0.8 # 80% of the dataset for training
+    split_frac = 0.5 # 50% of the remaining 20% of the dataset for validation
+    train_size = int(len(dataset)*split_size)
+    val_size = int((len(dataset) - train_size)*split_frac)
+    
     # Created using indices from 0 to train_size.
-    train_dataset = torch.utils.data.Subset(dataset, range(int(len(dataset)*0.8)))
+    train_dataset = torch.utils.data.Subset(dataset, range(train_size))
+    
+    # Created using indices from train_size to train_size + val_size.
+    validation_dataset = torch.utils.data.Subset(dataset, range(train_size, train_size + val_size))
 
     # Created using indices from train_size to train_size + test_size.
-    test_dataset = torch.utils.data.Subset(dataset, range(int(len(dataset)*0.8), int(len(dataset)*0.8) + (len(dataset) - int(len(dataset)*0.8))))
+    test_dataset = torch.utils.data.Subset(dataset, range(train_size + val_size, len(dataset)))
 
     # Create the dataloaders
-    train_dataloader, test_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    validation_dataloader, test_dataloader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
-    # Load the model
+    # Load the Neural Network model
     nn_model = WindLSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(nn_model.parameters(), lr=LEARNING_RATE)
 
     # Print the dataset
     print(f"Train Dataset length: {len(train_dataset)}")
@@ -107,12 +124,50 @@ def main():
 
     # Print sequence and target
     print("First 5 sequences:")
-    print(train_sequence[:20])
+    print(train_sequence[:5])
     print("First 5 targets:")
-    print(train_target[:20])
+    print(train_target[:5])
     
     # Print model
     print(nn_model)
+    
+    # See the output of the model without training
+    with torch.no_grad():
+        print(f'Without training: {nn_model(train_sequence)}')
+    
+    # Train the model
+    """ for epoch in range(EPOCHS):
+        for sequence, target in train_dataloader:
+            target = target.type(torch.LongTensor)
+            sequence, target = sequence.to(device), target.to(device)
+            optimizer.zero_grad()
+            
+            output = nn_model(sequence)
+            loss = criterion(output, target)
+            
+            loss.backward()
+            
+            optimizer.step()
+        if epoch % 100 == 0:
+            print(f"Epoch: {epoch}, loss: {loss.item()}")
+            
+    # See the output of the model after training
+    for sequence, target in test_dataloader:
+        target = target.type(torch.LongTensor)
+        sequence, target = sequence.to(device), target.to(device)
+        with torch.no_grad():
+            prediction = nn_model(sequence)
+            data_prediction = prediction.cpu().numpy()
+            dataY_plot = target.cpu().numpy()
+            
+            plt.figure(figsize=(20, 10))
+            plt.axvline(x=200, c='r', linestyle='--') #size of the training set
+            
+            plt.plot(dataY_plot, label='Actuall Data') #actual plot
+            plt.plot(data_prediction, label='Predicted Data') #predicted plot
+            plt.title('Wind Power Time-Series Prediction')
+            plt.legend()
+            plt.show()  """
     
 if __name__ == "__main__":
     main()

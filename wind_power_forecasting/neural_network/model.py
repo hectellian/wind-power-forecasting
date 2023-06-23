@@ -71,8 +71,8 @@ class WindLSTM(nn.Module):
         logits : torch.Tensor
             The output tensor.
         """
-        h0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_()
-        c0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_()
+        h0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_().to(x.device)
+        c0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_().to(x.device)
         
         out, (hn, cn) = self.lstm(x, (h0.detach(), c0.detach()))
         out = self.fc(out[:, -1, :])
