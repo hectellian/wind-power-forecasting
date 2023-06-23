@@ -42,7 +42,6 @@ class Model():
 
     def __call__(self, x):
         return self.predict(x)
-    
 
     def train(self, train_data:"DataLoader", epochs = 200_000, record_freq=1_000):
         
@@ -72,7 +71,7 @@ class Model():
                     for batch_points, batch_values in train_data:
 
                         outputs = self.model(batch_points)
-                        loss = self.criterion(torch.squeeze(outputs), batch_values)
+                        loss = self.criterion(outputs, batch_values)
 
                         intermediate_loss_list.append(loss.item())
 
@@ -91,23 +90,41 @@ class Model():
         return self.__str__()
 
     def save(self, file_name:str):
+        torch.save(self.model.state_dict(), file_name)
 
-        with os.open(file_name, os.O_CREAT|os.O_RDWR) as f:
-            torch.save(self, file_name)
-
-    def load(file_name:str) -> "Model":
-        
-        with os.open(file_name, os.O_RDONLY) as f:
-            return torch.load(f)
+    def load(self, file_name:str):
+        self.model.load_state_dict(torch.load(file_name))
         
     def plot_loss(self):
-
         plt.plot(self.epoch_record,self.loss_record)
         plt.title("Loss in function of training epochs")
         plt.show()
-                                
-
-
-
-
-
+        
+    def plot_prediction(self, test_data:"DataLoader"):
+        with torch.no_grad():
+            prediction_list = []
+            real_data_list = []
+            for batch_points, batch_values in test_data:
+                outputs = self.model(batch_points)
+                print(outputs)
+                for o, d in zip(outputs, batch_values):
+                    prediction_list.append(o.item())
+                    real_data_list.append(d.item())
+            plt.plot(prediction_list, label="Prediction Data")
+            plt.plot(real_data_list, label="Real Data")
+            plt.title("Active Power Prediction")
+            plt.legend()
+            plt.show()
+        
+    def plot_accuracy(self, validation_data:"DataLoader"):    
+        with torch.no_grad():
+            accuracy_list = []
+            for batch_points, batch_values in validation_data:
+                outputs = self.model(batch_points)
+                accuracy = 1 - abs(outputs - batch_values)/batch_values
+                for a in accuracy:
+                    accuracy_list.append(a.item())
+            plt.plot(accuracy_list)
+            plt.title("Accuracy of Active Power")
+            plt.show()
+        
