@@ -45,7 +45,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
     __getitem__(index)
         Returns one sample of the dataset.
     """
-    def __init__(self, data_dir, relative_position_file, device='cpu', transform=None, target_transform=None):
+    def __init__(self, data_dir, relative_position_file, q=1, device='cpu', transform=None, target_transform=None):
         """Constructs all the necessary attributes for the Dataset object.
 
         Parameters
@@ -54,6 +54,8 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
             The path to the data file.
         relative_position_file : str
             The path to the relative position file.
+        q : int, optional
+            The length of the sequence.
         device : str, optional
             The device to use for the data.
         transform : callable, optional
@@ -64,6 +66,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         """
         self.data = pd.read_csv(data_dir)
         self.relative_positions = pd.read_csv(relative_position_file)
+        self.q = q
         self.device = device
         self.transform = transform
         self.target_transform = target_transform
@@ -72,25 +75,36 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         #self.merged_data = pd.merge(self.data, self.relative_positions, on='TurbID')
 
         # Convert days to continuous minutes
-        self.data["Tmstamp"] = pd.to_datetime(self.data["Tmstamp"], format='%H:%M')
-        self.data["Tmstamp"] = self.data["Tmstamp"].dt.hour * 60 + self.data["Tmstamp"].dt.minute
-        self.data = self.data.drop('Day', axis=1)
-
+        self.data["Tmstamp"] = self.data["Day"].astype(str) + " " + self.data["Tmstamp"].astype(str)
+        self.data["Tmstamp"] = pd.to_datetime(self.data["Tmstamp"], format='%j %H:%M')
+        self.data["Tmstamp"] = self.data["Tmstamp"].rank(method='dense').astype(int) 
+        
+        self.data.drop(columns=["Day"], inplace=True)
+        
+        print("Cleaning data...")
+        
         # Handle missing values
+        print("Removing rows with missing values...")
         self.data = self.data.dropna() # Remove rows with missing values
-
+        print("Rows with missing values removed.")
+        
         # Handle Unkown values
-        self.data.drop(self.data[(self.data["Patv"] <= 0) & (self.data["Wspd"] > 2.5)].index)
-        self.data.drop(self.data[(self.data["Pab1"] > 89) | (self.data["Pab2"] > 89) | (self.data["Pab3"] > 89)].index)
+        print("Removing rows with unknown values...")
+        self.data.drop(self.data[(self.data["Patv"] <= 0) & (self.data["Wspd"] > 2.5)].index, inplace=True)
+        self.data.drop(self.data[(self.data["Pab1"] > 89) | (self.data["Pab2"] > 89) | (self.data["Pab3"] > 89)].index, inplace=True)
+        print("Rows with unknown values removed.")
 
         # Handle Abnormal values
-        self.data.drop(self.data[(self.data["Ndir"] < -720) & (self.data["Ndir"] > 720)].index)
-        self.data.drop(self.data[(self.data["Wdir"] < -180) & (self.data["Wdir"] > 180)].index)
+        print("Removing rows with abnormal values...")
+        self.data.drop(self.data[(self.data["Ndir"] < -720) & (self.data["Ndir"] > 720)].index, inplace=True)
+        self.data.drop(self.data[(self.data["Wdir"] < -180) & (self.data["Wdir"] > 180)].index, inplace=True)
+        print("Rows with abnormal values removed.")
 
         self.data.iloc[:, -2:] = self.data.iloc[:, -2:].clip(lower=0) # Replace negative values with 0
         
-        # Reset index
-        # self.data = self.data.reset_index(drop=True)
+        self.data.reset_index(drop=True, inplace=True)
+        
+        print("Cleaning done.")
 
     def correlations(self, target):
         """Return the correlations of all the sequence with the target feature
@@ -113,7 +127,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
     def __len__(self):
         """Returns the number of samples.
         """
-        return len(self.data)
+        return len(self.data) // self.q
     
     def __getitem__(self, idx):
         """Returns the sample of the dataset at the given index.
@@ -137,8 +151,8 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        sequence = np.array([self.data.loc[idx, ~self.data.columns.isin(['Patv'])].values])  # Exclude target column
-        target = self.data.loc[idx, 'Patv']
+        sequence = self.data.loc[idx:idx + self.q - 1, ~self.data.columns.isin(['Patv'])].values # Exclude target column
+        target = self.data.loc[idx:idx + self.q - 1, 'Patv'].values
         
         if self.transform:
             sequence = self.transform(sequence)
