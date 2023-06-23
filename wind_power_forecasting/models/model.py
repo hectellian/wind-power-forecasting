@@ -55,7 +55,7 @@ class Model():
 
                 self.optimizer.zero_grad()
                 outputs = self.model(batch_points)
-                loss = self.criterion(torch.squeeze(outputs), batch_values)
+                loss = self.criterion(outputs, batch_values)
 
                 loss.backward()
                 self.optimizer.step()
@@ -76,7 +76,7 @@ class Model():
 
                         intermediate_loss_list.append(loss.item())
 
-                    loss_record_list.append(sum(intermediate_loss_list)/intermediate_loss_list.len())
+                    loss_record_list.append(sum(intermediate_loss_list)/len(intermediate_loss_list))
         
         self.loss_record = loss_record_list
         self.epoch_record = epoch_record_list
