@@ -18,8 +18,10 @@ __version__ = "0.0.1"
 
 # Libraries
 import torch
+from ..model import Model
+from torch.utils.data import DataLoader
 
-class KNN():
+class KNN(Model):
     """K Nearest Neighbor class.
 
     Attributes
@@ -37,53 +39,30 @@ class KNN():
         The training of the model.
     predict(x)
         The prediction the label of x
-    
     """
 
-    def __init__(self, X = None, Y = None, k = 3) -> None:
+    def __init__(self, k = 3, device = None) -> None:
         """Constructs the neccessary attributes and trains the model.
 
         Parameters
         ----------
-        X: torch.Tensor
-            The training points
-        Y: torch.Tensor
-            The training labels
         k: int
             The number of neighbors to be studied
         """
-        self.train(X, Y)
         self.k = k
+        self.device = device
 
-    def train(self, X, Y) -> None:
+    def train(self, train_data:DataLoader) -> None:
         """Trains the model over the given inputs.
 
         Parameters
         ----------
-        X: torch.Tensor
-            The training points
-        Y: torch.Tensor
-            The training labels
+        X: DataLoader
+            The training datas
         """
 
-        self.train_pts = X
-        self.train_labels = Y
+        self.data = train_data
 
-    def __call__(self, x):
-        """Predict the label of x on the current model
-
-        Parameters
-        ----------
-        x: torch.Tensor
-            The studied tensor
-
-        Returns
-        -------
-        label: torch.tensor
-            The computed label for x
-        """ 
-        return self.predict(x)
-    
     def predict(self, x):
         """Predict the label of x on the current model
 
@@ -98,9 +77,23 @@ class KNN():
             The computed label for x
         """
         
-        distances = torch.norm(self.train_pts-x,dim=1)
+        points = torch.Tensor(device=self.device)
+        values = torch.Tensor(device=self.device)
+
+
+        for batch_points, batch_values in self.data:
+            points = torch.cat(points,batch_points)
+            values = torch.cat(values,batch_values)
+
+        distances = torch.norm(points-x,dim=1)
         knn = distances.topk(self.k, largest=False)
         
-        neighbors = self.train_labels[knn.indices]
+        neighbors = values[knn.indices]
 
         return torch.mean(neighbors,dim=0)
+    
+    def plot_loss(self):
+        return "Not plotabel since there is no loss function"
+
+    def __str__(self) -> str:
+        return f"KNN: - k: {self.k}"
