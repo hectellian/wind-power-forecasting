@@ -55,7 +55,7 @@ class LSTM(Model):
         forward
             Forward pass.
         """
-        def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int) -> None:
+        def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int, device: str ='cpu') -> None:
             """Constructs all the necessary attributes for the NeuralNetwork object.
             
             Parameters
@@ -70,6 +70,8 @@ class LSTM(Model):
                 Number of outputs.
             """
             super(LSTM.Inner, self).__init__()
+            
+            self.device = device
             
             self.hidden_size = hidden_size
             self.layer_num = layer_num
@@ -90,15 +92,15 @@ class LSTM(Model):
             out : torch.Tensor
                 Predicted output.
             """
-            h0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_().to(x.device)
-            c0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_().to(x.device)
+            h0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_().to(self.device)
+            c0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_().to(self.device)
             
             out, (hn, cn) = self.lstm(x, (h0.detach(), c0.detach()))
             out = self.fc(out[:, -1, :])
             
             return out
         
-    def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int, device='cpu', learning_rate: float = 0.01) -> None:
+    def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int, device: str ='cpu', learning_rate: float = 0.01) -> None:
         """Constructs all the necessary attributes for the NeuralNetwork object.
         
         Parameters
@@ -114,6 +116,7 @@ class LSTM(Model):
         learning_rate : float
             Learning rate.
         """        
-        self.model = self.Inner(input_size, hidden_size, layer_num, output_size).to(device)
+        self.device = device
+        self.model = self.Inner(input_size, hidden_size, layer_num, output_size, device=device).to(device)
         self.criterion = nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
