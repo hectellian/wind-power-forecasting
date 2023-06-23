@@ -22,7 +22,7 @@ import torch
 from torch import nn
 import pandas as pd
 
-class WindLSTM(nn.Module):
+class LSTM(nn.Module):
     """Neural network class.
     
     Attributes
@@ -41,7 +41,7 @@ class WindLSTM(nn.Module):
     forward(x)
         Forward pass.
     """
-    def __init__(self, input_size, hidden_size, layer_num, output_size):
+    def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int):
         """Constructs all the necessary attributes for the NeuralNetwork object.
         
         Parameters
@@ -55,7 +55,7 @@ class WindLSTM(nn.Module):
         output_size : int
             Number of outputs.
         """
-        super(WindLSTM, self).__init__()
+        super(LSTM, self).__init__()
         
         self.hidden_size = hidden_size
         self.layer_num = layer_num
@@ -63,13 +63,18 @@ class WindLSTM(nn.Module):
         self.lstm = nn.LSTM(input_size, hidden_size, layer_num, batch_first=True) # batch_first=True causes input/output tensors to be of shape (batch_dim, seq_dim, input_size)
         self.fc = nn.Linear(hidden_size, output_size)
         
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass.
+        
+        Parameters
+        ----------
+        x : torch.Tensor
+            The input tensor.
         
         Returns
         -------
-        logits : torch.Tensor
-            The output tensor.
+        out : torch.Tensor
+            Predicted output.
         """
         h0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_().to(x.device)
         c0 = torch.zeros(self.layer_num, x.size(0), self.hidden_size).requires_grad_().to(x.device)

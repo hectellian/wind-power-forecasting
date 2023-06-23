@@ -30,7 +30,7 @@ import urllib.request
 
 # Modules
 from .data import CustomWindFarmDataset
-from .neural_network.model import WindLSTM
+from neural_network import LSTM
 from .urls import data_url, relative_position_url, data_dir, relative_position_file
 
 # Functions
@@ -74,6 +74,7 @@ def main():
     print(f"Using {device} device.")
     
     # hyperparameters
+    SEQ_LEN = 10
     INPUT_SIZE = 11
     HIDDEN_SIZE = 8
     OUTPUT_SIZE = 1
@@ -87,7 +88,7 @@ def main():
     target_transform = MinMaxScaler().fit_transform
     
     # Load the dataset
-    dataset = CustomWindFarmDataset(data_dir, relative_position_file, device=device)
+    dataset = CustomWindFarmDataset(data_dir, relative_position_file, q=SEQ_LEN, device=device)
     patv_correlations = dataset.correlations("Patv")
     print("Correlations : ", patv_correlations)
     
@@ -111,7 +112,7 @@ def main():
     validation_dataloader, test_dataloader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
     # Load the Neural Network model
-    nn_model = WindLSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE).to(device)
+    nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(nn_model.parameters(), lr=LEARNING_RATE)
 
@@ -135,8 +136,8 @@ def main():
     with torch.no_grad():
         print(f'Without training: {nn_model(train_sequence)}')
     
-    # Train the model
-    """ for epoch in range(EPOCHS):
+    """  # Train the model
+    for epoch in range(EPOCHS):
         for sequence, target in train_dataloader:
             target = target.type(torch.LongTensor)
             sequence, target = sequence.to(device), target.to(device)
