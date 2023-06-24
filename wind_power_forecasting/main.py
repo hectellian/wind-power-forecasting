@@ -18,41 +18,16 @@ __status__ = "Development"
 __version__ = "0.0.1"
 
 # Libraries
-import os
 import torch
 import numpy as np
-from tqdm import tqdm
 from torch import nn, optim
-import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
-import urllib.request
 
 # Modules
 from .data import CustomWindFarmDataset
 from .models import *
-from .urls import data_url, relative_position_url, data_dir, relative_position_file
-
-# Functions
-def download_data(url: str, filename: str):
-    """Download datasets from the internet if they are not already present.
-    """
-    
-    data_dir = "./wind_power_forecasting/data/"
-    
-    if not os.path.exists(filename):
-        if not os.path.exists(os.path.dirname(data_dir)):
-            os.makedirs(os.path.dirname(data_dir))
-            
-        print(f"Downloading {filename}...")
-        
-        with tqdm(unit="B", unit_scale=True, miniters=1, desc=filename) as progress_bar:
-            urllib.request.urlretrieve(url, filename=filename, reporthook=lambda block_num, block_size, total_size: progress_bar.update(block_num * block_size - progress_bar.n))
-            
-        print(f"{filename} downloaded.")
-        
-    else:
-        print(f"{filename} already exists.")
+from .utils import download_data, data_url, relative_position_url, data_dir, relative_position_file
     
 def main():
     """ Main function of the project.
@@ -112,8 +87,9 @@ def main():
     validation_dataloader, test_dataloader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
     # Load the models
-    nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE, device=device, learning_rate=LEARNING_RATE, transform=transform.inverse_transform, target_transform=target_transform.inverse_transform)
-    knn_model = KNN(device=device, transform=transform.inverse_transform, target_transform=target_transform.inverse_transform)
+    nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE, device=device, learning_rate=LEARNING_RATE, target_transform=target_transform.inverse_transform)
+    knn_model = KNN(device=device, target_transform=target_transform.inverse_transform)
+    lreg_model = LogisticRegression(INPUT_SIZE, OUTPUT_SIZE, learning_rate=LEARNING_RATE, device=device, target_transform=target_transform.inverse_transform)
 
     # Print the dataset
     print(f"Dataset length: {len(dataset)}")
@@ -132,22 +108,25 @@ def main():
     print(nn_model)
     print(knn_model)
     
-    nn_model.load('./wind_power_forecasting/saved_models/nn_model.pt')
+    nn_model.load('./saved_models/nn_model.pt')
     with torch.no_grad():
         print("NN model prediction:")
         print(nn_model(train_sequence))
     
     # Neural Network Modeling
-    nn_model.train(train_dataloader, validation_dataloader, epochs=EPOCHS, record_freq=10)
+    # nn_model.train(train_dataloader, validation_dataloader, epochs=EPOCHS, record_freq=10)
     nn_model.plot_loss()
     nn_model.plot_accuracy()
     nn_model.plot_prediction(test_dataloader)
-    nn_model.save('./wind_power_forecasting/saved_models/nn_model.pt')
+    nn_model.save('./saved_models/nn_model.pt')
     
     # KNN Modeling    
     knn_model.train(train_dataloader, validation_dataloader)
     knn_model.plot_accuracy()
     knn_model.plot_prediction(test_dataloader)
+    
+    # Logistic Regression Modeling
+    
     
 if __name__ == "__main__":
     main()

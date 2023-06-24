@@ -47,7 +47,7 @@ class KNN(Model):
         The prediction the label of x
     """
 
-    def __init__(self, k = 3, device = None, transform=None, target_transform=None) -> None:
+    def __init__(self, k = 3, device = None) -> None:
         """Constructs the neccessary attributes and trains the model.
 
         Parameters
@@ -58,8 +58,6 @@ class KNN(Model):
         self.k = k
         self.model = KNeighborsRegressor(n_neighbors=k, metric='manhattan')
         self.device = device
-        self.transform = transform
-        self.target_transform = target_transform
 
     def train(self, train_data:DataLoader, validation_data:DataLoader) -> None:
         """Trains the model over the given inputs.
@@ -91,13 +89,14 @@ class KNN(Model):
             val_labels.append(val_values)
             
         val_features = torch.cat(val_features, dim=0)
-        val_labels = torch.cat(val_labels, dim=0)
+        val_labels = torch.cat(val_labels, dim=0).cpu().detach().numpy()
         
         predictions = self.predict(val_features)
-        val_labels = self.target_transform(val_labels.cpu().detach().numpy())
         
         accuracy = mean_squared_error(val_labels, predictions, squared=False)
         self.accuracy = accuracy
+        
+        print(f"KNN Training finished. Final Accuracy: {accuracy}")
         
     def predict(self, x):
         """Predict the label of x on the current model
@@ -112,25 +111,30 @@ class KNN(Model):
         label: torch.tensor
             The computed label for x
         """
-        return self.target_transform(torch.tensor(self.model.predict(x.cpu().numpy())))
+        return self.model.predict(x.cpu().numpy())
     
     def plot_loss(self):
         return "Not plotabel since there is no loss function"
     
-    def plot_prediction(self, test_data:DataLoader):
-        X = torch.Tensor().to(self.device)
-        y = torch.Tensor().to(self.device)
+    def plot_prediction(self, test_data:DataLoader, target_transform=None):
+        features = []
+        labels = []
 
         for batch_points, batch_values in test_data:
             reshaped = torch.reshape(batch_points, (batch_points.shape[0] * batch_points.shape[1], batch_points.shape[2]))
-            X = torch.cat((X, reshaped), dim=0)
-            y = torch.cat((y, batch_values), dim=0)
+            features.append(reshaped)
+            labels.append(batch_values)
+            
+        features = torch.cat(features, dim=0)
+        labels = torch.cat(labels, dim=0).cpu().numpy()
              
-        outputs = self.predict(X)
-        y = self.target_transform(y.cpu().detach().numpy())
+        outputs = self.predict(features)
+        if target_transform is not None:
+            outputs = target_transform(outputs)
+            labels = target_transform(labels)
         plt.plot(outputs, label="Prediction Data")
-        plt.plot(y, label="Real Data")
-        plt.title("Active Power Prediction")
+        plt.plot(labels, label="Real Data")
+        plt.title("KNN - Active Power Prediction")
         plt.legend()
         plt.show()
         

@@ -32,7 +32,7 @@ class Model():
         pass
 
 
-    def __init__(self, learning_rate = 0.01, transform=None, target_transform=None) -> None:
+    def __init__(self, learning_rate = 0.01) -> None:
         
         self.model = self.Inner()
         self.criterion = torch.nn.L1Loss()
@@ -40,7 +40,8 @@ class Model():
 
 
     def predict(self, x:torch.Tensor):
-        return self.target_transform(self.model(x).cpu().detach().numpy())
+        return self.model(x)
+        
 
     def __call__(self, x):
         return self.predict(x)
@@ -95,7 +96,7 @@ class Model():
         self.val_record = val_record_list
         self.epoch_record = epoch_record_list
         
-        print(f"Training finished. Final Accuracy: {accuracy_history[-1]}")
+        print(f"{self.__class__.__name__} Training finished. Final Accuracy: {accuracy_history[-1]}")
 
         return loss_record_list.copy(), epoch_record_list.copy()
     
@@ -117,31 +118,35 @@ class Model():
     def plot_loss(self):
         plt.plot(self.epoch_record,self.loss_record, label="Train Loss")
         plt.plot(self.epoch_record,self.val_record, label="Validation Loss")
-        plt.title("Loss in function of training epochs")
+        plt.title(f"{self.__class__.__name__} - Loss in function of training epochs")
         plt.legend()
         plt.show()
         
-    def plot_prediction(self, test_data:"DataLoader"):
+    def plot_prediction(self, test_data:"DataLoader", target_transform=None):
         predictions = []
         true_labels = []
         # TO not affect the computed weights
         with torch.no_grad():
             for batch_points, batch_values in test_data:
-                outputs = self.model(batch_points)
-                outputs = self.target_transform(outputs.cpu().numpy())
+                outputs = self.model(batch_points).cpu().numpy()
+                
+                if target_transform is not None:
+                    outputs = target_transform(outputs)
+                    
                 predictions.extend(outputs)
                 true_labels.extend(batch_values.cpu().numpy()) 
-                
-        true_labels = self.target_transform(true_labels)
+        
+        if target_transform is not None:        
+            true_labels = target_transform(true_labels)
         predictions = np.array(predictions)
         plt.plot(predictions, label="Prediction Data")
         plt.plot(true_labels, label="Real Data")
-        plt.title("Active Power Prediction")
+        plt.title(f"{self.__class__.__name__} - Active Power Prediction")
         plt.legend()
         plt.show()
         
     def plot_accuracy(self):    
         plt.plot(self.epoch_record, self.accuracy_record)
-        plt.title("Accuracy of Active Power in function of training epochs")
+        plt.title(f"{self.__class__.__name__} - Accuracy of Active Power in function of training epochs")
         plt.show()
         
