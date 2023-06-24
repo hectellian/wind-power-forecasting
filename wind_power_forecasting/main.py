@@ -30,9 +30,7 @@ import urllib.request
 
 # Modules
 from .data import CustomWindFarmDataset
-from .models.neural_network.model import LSTM
-from .models.baseline.model import KNN
-from .models.logistic_regression.model import LogisticRegression
+from .models import *
 from .urls import data_url, relative_position_url, data_dir, relative_position_file
 
 # Functions
