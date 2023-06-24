@@ -77,19 +77,19 @@ def main():
     # hyperparameters
     SEQ_LEN = 1
     INPUT_SIZE = 11
-    HIDDEN_SIZE = 8
+    HIDDEN_SIZE = 6
     OUTPUT_SIZE = 1
     NUM_LAYERS = 1
-    BATCH_SIZE = 16
-    LEARNING_RATE = 1e-3
-    EPOCHS = 200
+    BATCH_SIZE = 32
+    LEARNING_RATE = 0.05
+    EPOCHS = 500
     
     # Transforms
-    transform = StandardScaler().fit_transform
-    target_transform = MinMaxScaler().fit_transform
+    transform = StandardScaler()
+    target_transform = MinMaxScaler()
     
     # Load the dataset
-    dataset = CustomWindFarmDataset(data_dir, relative_position_file, q=SEQ_LEN, device=device)
+    dataset = CustomWindFarmDataset(data_dir, relative_position_file, q=SEQ_LEN, device=device, transform=transform.fit_transform, target_transform=target_transform.fit_transform)
     #patv_correlations = dataset.correlations("Patv")
     #print("Correlations : ", patv_correlations)
     
@@ -113,8 +113,8 @@ def main():
     validation_dataloader, test_dataloader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
     # Load the models
-    nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE, device=device)
-    knn_model = KNN(device=device)
+    nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE, device=device, learning_rate=LEARNING_RATE, transform=transform.inverse_transform, target_transform=target_transform.inverse_transform)
+    knn_model = KNN(device=device, transform=transform.inverse_transform, target_transform=target_transform.inverse_transform)
 
     # Print the dataset
     print(f"Dataset length: {len(dataset)}")
@@ -133,16 +133,21 @@ def main():
     print(nn_model)
     print(knn_model)
     
+    nn_model.load('./wind_power_forecasting/saved_models/nn_model.pt')
+    with torch.no_grad():
+        print("NN model prediction:")
+        print(nn_model(train_sequence))
+    
     # Neural Network Modeling
-    #nn_model.train(train_dataloader, epochs=EPOCHS, record_freq=10)
-    #nn_model.plot_loss()
-    #nn_model.plot_accuracy(validation_dataloader)
-    #nn_model.plot_prediction(test_dataloader)
-    #nn_model.save('./saved_models/nn_model.pth')
+    nn_model.train(train_dataloader, validation_dataloader, epochs=EPOCHS, record_freq=10)
+    nn_model.plot_loss()
+    nn_model.plot_accuracy()
+    nn_model.plot_prediction(test_dataloader)
+    nn_model.save('./wind_power_forecasting/saved_models/nn_model.pt')
     
     # KNN Modeling    
-    knn_model.train(train_dataloader)
-    knn_model.plot_accuracy(validation_dataloader)
+    knn_model.train(train_dataloader, validation_dataloader)
+    knn_model.plot_accuracy()
     knn_model.plot_prediction(test_dataloader)
     
 if __name__ == "__main__":

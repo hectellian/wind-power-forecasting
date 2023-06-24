@@ -18,9 +18,11 @@ __version__ = "0.0.1"
 
 # Libraries
 import torch
+import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from sklearn.neighbors import KNeighborsRegressor
+from sklearn.metrics import mean_squared_error
 
 # Modules
 from ..model import Model
@@ -45,7 +47,7 @@ class KNN(Model):
         The prediction the label of x
     """
 
-    def __init__(self, k = 3, device = None) -> None:
+    def __init__(self, k = 3, device = None, transform=None, target_transform=None) -> None:
         """Constructs the neccessary attributes and trains the model.
 
         Parameters
@@ -56,8 +58,10 @@ class KNN(Model):
         self.k = k
         self.model = KNeighborsRegressor(n_neighbors=k, metric='manhattan')
         self.device = device
+        self.transform = transform
+        self.target_transform = target_transform
 
-    def train(self, train_data:DataLoader) -> None:
+    def train(self, train_data:DataLoader, validation_data:DataLoader) -> None:
         """Trains the model over the given inputs.
 
         Parameters
@@ -67,6 +71,10 @@ class KNN(Model):
         """
         features = []
         labels = []
+        
+        val_features = []
+        val_labels = []
+        
         for batch_points, batch_values in train_data:
             reshaped = torch.reshape(batch_points, (batch_points.shape[0] * batch_points.shape[1], batch_points.shape[2]))
             features.append(reshaped)
@@ -76,6 +84,20 @@ class KNN(Model):
         labels = torch.cat(labels, dim=0)
         
         self.model.fit(features.cpu().numpy(), labels.cpu().numpy())
+        
+        for val_points, val_values in validation_data:
+            reshaped_val = torch.reshape(val_points, (val_points.shape[0] * val_points.shape[1], val_points.shape[2]))
+            val_features.append(reshaped_val)
+            val_labels.append(val_values)
+            
+        val_features = torch.cat(val_features, dim=0)
+        val_labels = torch.cat(val_labels, dim=0)
+        
+        predictions = self.predict(val_features)
+        val_labels = self.target_transform(val_labels.cpu().detach().numpy())
+        
+        accuracy = mean_squared_error(val_labels, predictions, squared=False)
+        self.accuracy = accuracy
         
     def predict(self, x):
         """Predict the label of x on the current model
@@ -90,7 +112,7 @@ class KNN(Model):
         label: torch.tensor
             The computed label for x
         """
-        return torch.tensor(self.model.predict(x.cpu().numpy()))
+        return self.target_transform(torch.tensor(self.model.predict(x.cpu().numpy())))
     
     def plot_loss(self):
         return "Not plotabel since there is no loss function"
@@ -105,29 +127,15 @@ class KNN(Model):
             y = torch.cat((y, batch_values), dim=0)
              
         outputs = self.predict(X)
-        y = y.cpu().detach().numpy()
+        y = self.target_transform(y.cpu().detach().numpy())
         plt.plot(outputs, label="Prediction Data")
         plt.plot(y, label="Real Data")
         plt.title("Active Power Prediction")
         plt.legend()
         plt.show()
         
-    def plot_accuracy(self, validation_data:DataLoader):
-        X = torch.Tensor().to(self.device)
-        y = torch.Tensor().to(self.device)
-
-        for batch_points, batch_values in validation_data:
-            reshaped = torch.reshape(batch_points, (batch_points.shape[0] * batch_points.shape[1], batch_points.shape[2]))
-            X = torch.cat((X, reshaped), dim=0)
-            y = torch.cat((y, batch_values), dim=0)
-             
-        outputs = self.predict(X)
-        y = y.cpu().detach().numpy()
-        accuracy = 1 - abs(outputs - y)/y
-        plt.plot(accuracy, label="Accuracy")
-        plt.title("Accuracy of Active Power")
-        plt.legend()
-        plt.show()
+    def plot_accuracy(self):
+        return f"Accuracy: {self.accuracy}"
         
     def save(self, file_name:str):
         return f"Cannot save KNN model"

@@ -18,7 +18,9 @@ __version__ = "0.0.1"
 
 # Librairies
 import torch
+import numpy as np
 from torch.utils.data import DataLoader
+from sklearn.metrics import mean_squared_error
 from tqdm import tqdm
 import os
 import matplotlib.pyplot as plt
@@ -30,7 +32,7 @@ class Model():
         pass
 
 
-    def __init__(self, learning_rate = 0.01) -> None:
+    def __init__(self, learning_rate = 0.01, transform=None, target_transform=None) -> None:
         
         self.model = self.Inner()
         self.criterion = torch.nn.L1Loss()
@@ -38,14 +40,18 @@ class Model():
 
 
     def predict(self, x:torch.Tensor):
-        return self.model(x)
+        return self.target_transform(self.model(x).cpu().detach().numpy())
 
     def __call__(self, x):
         return self.predict(x)
 
-    def train(self, train_data:"DataLoader", epochs = 200_000, record_freq=1_000):
+    def train(self, train_data:"DataLoader", validation_data:"DataLoader", epochs = 200_000, record_freq=1_000):
         
+        accuracy_history = []
         loss_record_list = []
+        val_record_list = []
+        intermediate_loss_list = []
+        intermediate_val_list = []
         epoch_record_list:"list[int]" = []
 
         for epoch in tqdm(range(int(epochs)),desc=f"{self.__class__.__name__} Trainining"):
@@ -61,24 +67,35 @@ class Model():
 
             if epoch%record_freq == 0:
 
+                intermediate_loss_list.append(loss.item())
                 epoch_record_list.append(epoch)
 
+                predictions = []
+                true_labels = []
                 # TO not affect the computed weights
                 with torch.no_grad():
-
-                    intermediate_loss_list = []
-
-                    for batch_points, batch_values in train_data:
+                    for batch_points, batch_values in validation_data:
 
                         outputs = self.model(batch_points)
                         loss = self.criterion(outputs, batch_values)
+                            
+                        intermediate_val_list.append(loss.item())
+                            
+                        predictions.extend(outputs.cpu().numpy())
+                        true_labels.extend(batch_values.cpu().numpy())
 
-                        intermediate_loss_list.append(loss.item())
-
-                    loss_record_list.append(sum(intermediate_loss_list)/len(intermediate_loss_list))
+                accuracy = torch.tensor(mean_squared_error(true_labels, predictions, squared=False))
         
+                loss_record_list.append(sum(intermediate_loss_list)/len(intermediate_loss_list))
+                val_record_list.append(sum(intermediate_val_list)/len(intermediate_val_list))
+                accuracy_history.append(accuracy)
+        
+        self.accuracy_record = accuracy_history
         self.loss_record = loss_record_list
+        self.val_record = val_record_list
         self.epoch_record = epoch_record_list
+        
+        print(f"Training finished. Final Accuracy: {accuracy_history[-1]}")
 
         return loss_record_list.copy(), epoch_record_list.copy()
     
@@ -90,40 +107,42 @@ class Model():
         return self.__str__()
 
     def save(self, file_name:str):
-        torch.save(self.model.state_dict(), file_name)
+        print(f"Saving model to {file_name}.")
+        torch.save(self.model, file_name)
 
     def load(self, file_name:str):
-        self.model.load_state_dict(torch.load(file_name))
+        print(f"Loading model from {file_name}.")
+        torch.load(file_name)
+        self.model.eval()
         
     def plot_loss(self):
-        plt.plot(self.epoch_record,self.loss_record)
+        plt.plot(self.epoch_record,self.loss_record, label="Train Loss")
+        plt.plot(self.epoch_record,self.val_record, label="Validation Loss")
         plt.title("Loss in function of training epochs")
+        plt.legend()
         plt.show()
         
     def plot_prediction(self, test_data:"DataLoader"):
+        predictions = []
+        true_labels = []
+        # TO not affect the computed weights
         with torch.no_grad():
-            prediction_list = []
-            real_data_list = []
             for batch_points, batch_values in test_data:
                 outputs = self.model(batch_points)
-                for o, d in zip(outputs, batch_values):
-                    prediction_list.append(o.item())
-                    real_data_list.append(d.item())
-            plt.plot(prediction_list, label="Prediction Data")
-            plt.plot(real_data_list, label="Real Data")
-            plt.title("Active Power Prediction")
-            plt.legend()
-            plt.show()
+                outputs = self.target_transform(outputs.cpu().numpy())
+                predictions.extend(outputs)
+                true_labels.extend(batch_values.cpu().numpy()) 
+                
+        true_labels = self.target_transform(true_labels)
+        predictions = np.array(predictions)
+        plt.plot(predictions, label="Prediction Data")
+        plt.plot(true_labels, label="Real Data")
+        plt.title("Active Power Prediction")
+        plt.legend()
+        plt.show()
         
-    def plot_accuracy(self, validation_data:"DataLoader"):    
-        with torch.no_grad():
-            accuracy_list = []
-            for batch_points, batch_values in validation_data:
-                outputs = self.model(batch_points)
-                accuracy = 1 - abs(outputs - batch_values)/batch_values
-                for a in accuracy:
-                    accuracy_list.append(a.item())
-            plt.plot(accuracy_list)
-            plt.title("Accuracy of Active Power")
-            plt.show()
+    def plot_accuracy(self):    
+        plt.plot(self.epoch_record, self.accuracy_record)
+        plt.title("Accuracy of Active Power in function of training epochs")
+        plt.show()
         
