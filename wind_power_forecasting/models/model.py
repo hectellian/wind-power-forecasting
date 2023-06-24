@@ -106,7 +106,6 @@ class Model():
             real_data_list = []
             for batch_points, batch_values in test_data:
                 outputs = self.model(batch_points)
-                print(outputs)
                 for o, d in zip(outputs, batch_values):
                     prediction_list.append(o.item())
                     real_data_list.append(d.item())

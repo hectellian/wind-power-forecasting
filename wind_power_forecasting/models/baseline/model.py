@@ -18,8 +18,12 @@ __version__ = "0.0.1"
 
 # Libraries
 import torch
-from ..model import Model
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
+from sklearn.neighbors import KNeighborsRegressor
+
+# Modules
+from ..model import Model
 
 class KNN(Model):
     """K Nearest Neighbor class.
@@ -50,6 +54,7 @@ class KNN(Model):
             The number of neighbors to be studied
         """
         self.k = k
+        self.model = KNeighborsRegressor(n_neighbors=k, metric='manhattan')
         self.device = device
 
     def train(self, train_data:DataLoader) -> None:
@@ -60,9 +65,18 @@ class KNN(Model):
         X: DataLoader
             The training datas
         """
-
-        self.data = train_data
-
+        features = []
+        labels = []
+        for batch_points, batch_values in train_data:
+            reshaped = torch.reshape(batch_points, (batch_points.shape[0] * batch_points.shape[1], batch_points.shape[2]))
+            features.append(reshaped)
+            labels.append(batch_values)
+            
+        features = torch.cat(features, dim=0)
+        labels = torch.cat(labels, dim=0)
+        
+        self.model.fit(features.cpu().numpy(), labels.cpu().numpy())
+        
     def predict(self, x):
         """Predict the label of x on the current model
 
@@ -76,24 +90,50 @@ class KNN(Model):
         label: torch.tensor
             The computed label for x
         """
-        
-        points = torch.Tensor(device=self.device)
-        values = torch.Tensor(device=self.device)
-
-
-        for batch_points, batch_values in self.data:
-            points = torch.cat(points,batch_points)
-            values = torch.cat(values,batch_values)
-
-        distances = torch.norm(points-x,dim=1)
-        knn = distances.topk(self.k, largest=False)
-        
-        neighbors = values[knn.indices]
-
-        return torch.mean(neighbors,dim=0)
+        return torch.tensor(self.model.predict(x.cpu().numpy()))
     
     def plot_loss(self):
         return "Not plotabel since there is no loss function"
+    
+    def plot_prediction(self, test_data:DataLoader):
+        X = torch.Tensor().to(self.device)
+        y = torch.Tensor().to(self.device)
+
+        for batch_points, batch_values in test_data:
+            reshaped = torch.reshape(batch_points, (batch_points.shape[0] * batch_points.shape[1], batch_points.shape[2]))
+            X = torch.cat((X, reshaped), dim=0)
+            y = torch.cat((y, batch_values), dim=0)
+             
+        outputs = self.predict(X)
+        y = y.cpu().detach().numpy()
+        plt.plot(outputs, label="Prediction Data")
+        plt.plot(y, label="Real Data")
+        plt.title("Active Power Prediction")
+        plt.legend()
+        plt.show()
+        
+    def plot_accuracy(self, validation_data:DataLoader):
+        X = torch.Tensor().to(self.device)
+        y = torch.Tensor().to(self.device)
+
+        for batch_points, batch_values in validation_data:
+            reshaped = torch.reshape(batch_points, (batch_points.shape[0] * batch_points.shape[1], batch_points.shape[2]))
+            X = torch.cat((X, reshaped), dim=0)
+            y = torch.cat((y, batch_values), dim=0)
+             
+        outputs = self.predict(X)
+        y = y.cpu().detach().numpy()
+        accuracy = 1 - abs(outputs - y)/y
+        plt.plot(accuracy, label="Accuracy")
+        plt.title("Accuracy of Active Power")
+        plt.legend()
+        plt.show()
+        
+    def save(self, file_name:str):
+        return f"Cannot save KNN model"
+
+    def load(self, file_name:str):
+        return f"Cannot load KNN model"
 
     def __str__(self) -> str:
         return f"KNN: - k: {self.k}"

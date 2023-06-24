@@ -31,6 +31,7 @@ import urllib.request
 # Modules
 from .data import CustomWindFarmDataset
 from .models.neural_network.model import LSTM
+from .models.baseline.model import KNN
 from .urls import data_url, relative_position_url, data_dir, relative_position_file
 
 # Functions
@@ -111,8 +112,9 @@ def main():
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     validation_dataloader, test_dataloader = DataLoader(validation_dataset, batch_size=BATCH_SIZE, shuffle=False), DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
     
-    # Load the Neural Network model
+    # Load the models
     nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE, device=device)
+    knn_model = KNN(device=device)
 
     # Print the dataset
     print(f"Dataset length: {len(dataset)}")
@@ -127,15 +129,21 @@ def main():
     print("First 5 targets:")
     print(train_target[:5])
     
-    # Print model
+    # Print models
     print(nn_model)
+    print(knn_model)
     
     # Neural Network Modeling
-    nn_model.train(train_dataloader, epochs=EPOCHS, record_freq=10)
-    nn_model.plot_loss()
-    nn_model.plot_accuracy(validation_dataloader)
-    nn_model.plot_prediction(test_dataloader)
-    nn_model.save('./saved_models/nn_model.pth')
+    #nn_model.train(train_dataloader, epochs=EPOCHS, record_freq=10)
+    #nn_model.plot_loss()
+    #nn_model.plot_accuracy(validation_dataloader)
+    #nn_model.plot_prediction(test_dataloader)
+    #nn_model.save('./saved_models/nn_model.pth')
+    
+    # KNN Modeling    
+    knn_model.train(train_dataloader)
+    knn_model.plot_accuracy(validation_dataloader)
+    knn_model.plot_prediction(test_dataloader)
     
 if __name__ == "__main__":
     main()
