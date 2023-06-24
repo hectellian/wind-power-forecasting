@@ -84,7 +84,7 @@ class Model():
                         predictions.extend(outputs.cpu().numpy())
                         true_labels.extend(batch_values.cpu().numpy())
 
-                accuracy = torch.sqrt(torch.tensor(mean_squared_error(true_labels, predictions)))
+                accuracy = torch.tensor(mean_squared_error(true_labels, predictions, squared=False))
         
                 loss_record_list.append(sum(intermediate_loss_list)/len(intermediate_loss_list))
                 val_record_list.append(sum(intermediate_val_list)/len(intermediate_val_list))
@@ -94,6 +94,8 @@ class Model():
         self.loss_record = loss_record_list
         self.val_record = val_record_list
         self.epoch_record = epoch_record_list
+        
+        print(f"Training finished. Final Accuracy: {accuracy_history[-1]}")
 
         return loss_record_list.copy(), epoch_record_list.copy()
     
@@ -111,6 +113,7 @@ class Model():
     def load(self, file_name:str):
         print(f"Loading model from {file_name}.")
         torch.load(file_name)
+        self.model.eval()
         
     def plot_loss(self):
         plt.plot(self.epoch_record,self.loss_record, label="Train Loss")

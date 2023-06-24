@@ -94,7 +94,9 @@ class KNN(Model):
         val_labels = torch.cat(val_labels, dim=0)
         
         predictions = self.predict(val_features)
-        accuracy = np.sqrt(mean_squared_error(val_values, predictions))
+        val_labels = self.target_transform(val_labels.cpu().detach().numpy())
+        
+        accuracy = mean_squared_error(val_labels, predictions, squared=False)
         self.accuracy = accuracy
         
     def predict(self, x):
@@ -133,10 +135,7 @@ class KNN(Model):
         plt.show()
         
     def plot_accuracy(self):
-        plt.plot(self.accuracy, label="Accuracy")
-        plt.title("Accuracy of Active Power")
-        plt.legend()
-        plt.show()
+        return f"Accuracy: {self.accuracy}"
         
     def save(self, file_name:str):
         return f"Cannot save KNN model"
