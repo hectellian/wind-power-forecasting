@@ -64,7 +64,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         target_transform : callable, optional
             A function/transform that takes in the target and transforms it.
         """
-        self.data = pd.read_csv(data_dir).head(500)
+        self.data = pd.read_csv(data_dir).head(10000)
         self.relative_positions = pd.read_csv(relative_position_file)
         self.q = q
         self.device = device
@@ -103,6 +103,11 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         self.data.iloc[:, -2:] = self.data.iloc[:, -2:].clip(lower=0) # Replace negative values with 0
         
         self.data.reset_index(drop=True, inplace=True)
+        
+        if transform is not None: 
+            self.data.iloc[:, :-1] = self.transform(self.data.iloc[:, :-1].values)
+        if target_transform is not None:
+            self.data.iloc[:, -1] = self.target_transform(self.data.iloc[:, -1].values.reshape(-1, 1))
         
         print("Cleaning done.")
 
@@ -153,10 +158,5 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
 
         sequence = self.data.loc[idx:idx + self.q - 1, ~self.data.columns.isin(['Patv'])].values # Exclude target column
         target = self.data.loc[idx:idx + self.q - 1, 'Patv'].values
-        
-        if self.transform:
-            sequence = self.transform(sequence)
-        if self.target_transform:
-            target = self.target_transform(target)
             
         return torch.tensor(sequence, dtype=torch.float, device=self.device), torch.tensor(target, dtype=torch.float, device=self.device)

@@ -100,7 +100,7 @@ class LSTM(Model):
             
             return out
         
-    def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int, device: str ='cpu', learning_rate: float = 0.01) -> None:
+    def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int, device: str ='cpu', learning_rate: float = 0.01, transform=None, target_transform=None) -> None:
         """Constructs all the necessary attributes for the NeuralNetwork object.
         
         Parameters
@@ -120,3 +120,5 @@ class LSTM(Model):
         self.model = self.Inner(input_size, hidden_size, layer_num, output_size, device=device).to(device)
         self.criterion = nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        self.tranform = transform
+        self.target_transform = target_transform
