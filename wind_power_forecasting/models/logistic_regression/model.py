@@ -29,10 +29,10 @@ class LogisticRegression(Model):
             self.linear = torch.nn.Linear(input_size, output_size, device=device)
 
         def forward(self, x):
-            outputs = self.linear(x)
+            outputs = torch.sigmoid(self.linear(x[:, -1, :]))
             return outputs
         
-    def __init__(self, in_dim: int, out_dim:int, learning_rate = 0.01, device = None, target_transform=None) -> None:
+    def __init__(self, in_dim: int, out_dim:int, learning_rate = 0.01, device = None) -> None:
         
         self.device = device
         self.model = self.Inner(in_dim,out_dim, device=self.device)

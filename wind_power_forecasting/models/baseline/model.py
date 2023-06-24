@@ -47,7 +47,7 @@ class KNN(Model):
         The prediction the label of x
     """
 
-    def __init__(self, k = 3, device = None, transform=None, target_transform=None) -> None:
+    def __init__(self, k = 3, device = None) -> None:
         """Constructs the neccessary attributes and trains the model.
 
         Parameters
@@ -58,8 +58,6 @@ class KNN(Model):
         self.k = k
         self.model = KNeighborsRegressor(n_neighbors=k, metric='manhattan')
         self.device = device
-        self.transform = transform
-        self.target_transform = target_transform
 
     def train(self, train_data:DataLoader, validation_data:DataLoader) -> None:
         """Trains the model over the given inputs.
@@ -94,11 +92,11 @@ class KNN(Model):
         val_labels = torch.cat(val_labels, dim=0).cpu().detach().numpy()
         
         predictions = self.predict(val_features)
-        if self.target_transform is not None:
-            val_labels = self.target_transform(val_labels)
         
         accuracy = mean_squared_error(val_labels, predictions, squared=False)
         self.accuracy = accuracy
+        
+        print(f"KNN Training finished. Final Accuracy: {accuracy}")
         
     def predict(self, x):
         """Predict the label of x on the current model
@@ -113,15 +111,12 @@ class KNN(Model):
         label: torch.tensor
             The computed label for x
         """
-        if self.transform is not None:
-            return self.target_transform(self.model.predict(x.cpu().numpy()))
-        
         return self.model.predict(x.cpu().numpy())
     
     def plot_loss(self):
         return "Not plotabel since there is no loss function"
     
-    def plot_prediction(self, test_data:DataLoader):
+    def plot_prediction(self, test_data:DataLoader, target_transform=None):
         features = []
         labels = []
 
@@ -134,11 +129,12 @@ class KNN(Model):
         labels = torch.cat(labels, dim=0).cpu().numpy()
              
         outputs = self.predict(features)
-        if self.target_transform is not None:
-            y = self.target_transform(y)
+        if target_transform is not None:
+            outputs = target_transform(outputs)
+            labels = target_transform(labels)
         plt.plot(outputs, label="Prediction Data")
-        plt.plot(y, label="Real Data")
-        plt.title("Active Power Prediction")
+        plt.plot(labels, label="Real Data")
+        plt.title("KNN - Active Power Prediction")
         plt.legend()
         plt.show()
         

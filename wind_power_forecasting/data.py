@@ -64,7 +64,7 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         target_transform : callable, optional
             A function/transform that takes in the target and transforms it.
         """
-        self.data = pd.read_csv(data_dir).head(200)
+        self.data = pd.read_csv(data_dir).head(600)
         self.relative_positions = pd.read_csv(relative_position_file)
         self.q = q
         self.device = device
