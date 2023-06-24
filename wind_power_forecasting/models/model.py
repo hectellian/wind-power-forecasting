@@ -107,13 +107,12 @@ class Model():
         return self.__str__()
 
     def save(self, file_name:str):
-        print(f"Saving model to {file_name}.")
-        torch.save(self.model, file_name)
+        print(f"Saving self to {file_name}.")
+        torch.save(self, file_name)
 
-    def load(self, file_name:str):
-        print(f"Loading model from {file_name}.")
-        torch.load(file_name)
-        self.model.eval()
+    def load(file_name:str):
+        print(f"Loading objet from {file_name}.")
+        return torch.load(file_name)
         
     def plot_loss(self):
         plt.plot(self.epoch_record,self.loss_record, label="Train Loss")

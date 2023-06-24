@@ -1,4 +1,3 @@
-from model import LogisticRegression
-import model
+from .model import LogisticRegression
 
-__all__ = [LogisticRegression, model]
+__ALL__ = [LogisticRegression]
