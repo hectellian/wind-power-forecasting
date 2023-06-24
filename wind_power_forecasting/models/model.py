@@ -32,15 +32,20 @@ class Model():
         pass
 
 
-    def __init__(self, learning_rate = 0.01, transform=None, target_transform=None) -> None:
+    def __init__(self, learning_rate = 0.01, target_transform=None) -> None:
         
         self.model = self.Inner()
         self.criterion = torch.nn.L1Loss()
         self.optimizer = torch.optim.Optimizer()
+        self.target_transform = target_transform
 
 
     def predict(self, x:torch.Tensor):
-        return self.target_transform(self.model(x).cpu().detach().numpy())
+        if self.target_transform is not None:
+            return self.target_transform(self.model(x).cpu().detach().numpy())
+        
+        return self.model(x)
+        
 
     def __call__(self, x):
         return self.predict(x)
@@ -128,12 +133,16 @@ class Model():
         # TO not affect the computed weights
         with torch.no_grad():
             for batch_points, batch_values in test_data:
-                outputs = self.model(batch_points)
-                outputs = self.target_transform(outputs.cpu().numpy())
+                outputs = self.model(batch_points).cpu().numpy()
+                
+                if self.target_transform is not None:
+                    outputs = self.target_transform(outputs)
+                    
                 predictions.extend(outputs)
                 true_labels.extend(batch_values.cpu().numpy()) 
-                
-        true_labels = self.target_transform(true_labels)
+        
+        if self.target_transform is not None:        
+            true_labels = self.target_transform(true_labels)
         predictions = np.array(predictions)
         plt.plot(predictions, label="Prediction Data")
         plt.plot(true_labels, label="Real Data")

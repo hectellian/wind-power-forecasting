@@ -32,6 +32,7 @@ import urllib.request
 from .data import CustomWindFarmDataset
 from .models.neural_network.model import LSTM
 from .models.baseline.model import KNN
+from .models.logistic_regression.model import LogisticRegression
 from .urls import data_url, relative_position_url, data_dir, relative_position_file
 
 # Functions
@@ -115,6 +116,7 @@ def main():
     # Load the models
     nn_model = LSTM(INPUT_SIZE, HIDDEN_SIZE, NUM_LAYERS, OUTPUT_SIZE, device=device, learning_rate=LEARNING_RATE, transform=transform.inverse_transform, target_transform=target_transform.inverse_transform)
     knn_model = KNN(device=device, transform=transform.inverse_transform, target_transform=target_transform.inverse_transform)
+    lreg_model = LogisticRegression(INPUT_SIZE, OUTPUT_SIZE, learning_rate=LEARNING_RATE, device=device, transform=transform.inverse_transform, target_transform=target_transform.inverse_transform)
 
     # Print the dataset
     print(f"Dataset length: {len(dataset)}")
@@ -149,6 +151,9 @@ def main():
     knn_model.train(train_dataloader, validation_dataloader)
     knn_model.plot_accuracy()
     knn_model.plot_prediction(test_dataloader)
+    
+    # Logistic Regression Modeling
+    
     
 if __name__ == "__main__":
     main()

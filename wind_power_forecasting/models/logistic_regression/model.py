@@ -24,7 +24,7 @@ class LogisticRegression(Model):
 
     class Inner(torch.nn.Module):
 
-        def __init__(self, input_size, output_size, device ) -> None:
+        def __init__(self, input_size, output_size, device) -> None:
             super().__init__()
             self.linear = torch.nn.Linear(input_size, output_size, device=device)
 
@@ -32,12 +32,10 @@ class LogisticRegression(Model):
             outputs = self.linear(x)
             return outputs
         
-    def __init__(self, in_dim: int, out_dim:int, learning_rate = 0.01, device = None) -> None:
+    def __init__(self, in_dim: int, out_dim:int, learning_rate = 0.01, device = None, target_transform=None) -> None:
         
         self.device = device
         self.model = self.Inner(in_dim,out_dim, device=self.device)
         self.criterion = torch.nn.BCELoss()
         self.optimizer = torch.optim.SGD(self.model.parameters(), lr = learning_rate)
-        
-
 

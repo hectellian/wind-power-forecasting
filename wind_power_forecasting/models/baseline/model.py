@@ -91,10 +91,11 @@ class KNN(Model):
             val_labels.append(val_values)
             
         val_features = torch.cat(val_features, dim=0)
-        val_labels = torch.cat(val_labels, dim=0)
+        val_labels = torch.cat(val_labels, dim=0).cpu().detach().numpy()
         
         predictions = self.predict(val_features)
-        val_labels = self.target_transform(val_labels.cpu().detach().numpy())
+        if self.target_transform is not None:
+            val_labels = self.target_transform(val_labels)
         
         accuracy = mean_squared_error(val_labels, predictions, squared=False)
         self.accuracy = accuracy
@@ -112,22 +113,29 @@ class KNN(Model):
         label: torch.tensor
             The computed label for x
         """
-        return self.target_transform(torch.tensor(self.model.predict(x.cpu().numpy())))
+        if self.transform is not None:
+            return self.target_transform(self.model.predict(x.cpu().numpy()))
+        
+        return self.model.predict(x.cpu().numpy())
     
     def plot_loss(self):
         return "Not plotabel since there is no loss function"
     
     def plot_prediction(self, test_data:DataLoader):
-        X = torch.Tensor().to(self.device)
-        y = torch.Tensor().to(self.device)
+        features = []
+        labels = []
 
         for batch_points, batch_values in test_data:
             reshaped = torch.reshape(batch_points, (batch_points.shape[0] * batch_points.shape[1], batch_points.shape[2]))
-            X = torch.cat((X, reshaped), dim=0)
-            y = torch.cat((y, batch_values), dim=0)
+            features.append(reshaped)
+            labels.append(batch_values)
+            
+        features = torch.cat(features, dim=0)
+        labels = torch.cat(labels, dim=0).cpu().numpy()
              
-        outputs = self.predict(X)
-        y = self.target_transform(y.cpu().detach().numpy())
+        outputs = self.predict(features)
+        if self.target_transform is not None:
+            y = self.target_transform(y)
         plt.plot(outputs, label="Prediction Data")
         plt.plot(y, label="Real Data")
         plt.title("Active Power Prediction")
