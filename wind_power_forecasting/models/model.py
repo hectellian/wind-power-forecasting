@@ -26,6 +26,36 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 class Model():
+    """ The Base class for the various implemented models
+
+    This class is callable, and when called call the predict method on the passed object.
+
+    Class Methods
+    -------------
+        load(filename:str): Any
+            Returns the Model from the selected files
+
+    Object Methods
+    --------------
+        predict(x)
+            Returns the predict values according to model.
+        
+        train(train_dataset, validation_dataset, batch_size=32, epochs=200, record_freq=10, trial=None)
+            Trains the model according to the Datasets, and parameters. Returns the computed loss at the specied intervals.
+
+        save(filename:str)
+            Save the current model in the specified file
+
+        plot_loss()
+            Plot the loss computed in training
+
+        plot_prediction()
+            Plot the predictions computed in training
+
+        plot_accuracy()
+            Plot the accuracy computed in training
+
+    """
 
     class Inner(torch.nn.Module):
         pass
@@ -44,6 +74,32 @@ class Model():
         return self.predict(x)
 
     def train(self, train_dataset, validation_dataset, batch_size=32, epochs=200, record_freq=10, trial=None):
+        """  Trains the model according to the Datasets, and parameters. Returns the computed loss at the specied intervals.
+
+        Parameters
+        ----------
+            train_dataset
+                The dataset used to train the model
+
+            validation_dataset
+                The dataset uset to compute the metrics of the training
+
+            batch_size: int = 32
+                The size of a batch
+
+            epochs: int = 200
+                The number of epochs used in training
+
+            record_freq: int = 10
+                Every time epoch%record_freq == 0, the various metrics will be computed
+
+            trial: None
+                A parameter for optuna hyperparameter optimization
+            
+        Returns
+        -------
+            A copy of the computed metrics, which are also saved as an internal state
+        """
         accuracy_history = []
         loss_record_list = []
         val_record_list = []
@@ -107,7 +163,6 @@ class Model():
 
         return loss_record_list.copy(), val_record_list.copy()
     
-
     def __str__(self) -> str:
         return f"{self.__class__.__name__}: \n\t-model: {self.model} \n\t-criterion: {self.criterion} \n\t-optimizer: {self.optimizer}\n"
 
@@ -115,14 +170,20 @@ class Model():
         return self.__str__()
 
     def save(self, file_name:str):
+        """ Save the model to file_name
+        """
         print(f"Saving self to {file_name}.")
         torch.save(self, file_name)
 
     def load(file_name:str):
+        """ Returns the model stored in file_name
+        """
         print(f"Loading objet from {file_name}.")
         return torch.load(file_name)
         
     def plot_loss(self):
+        """ Plot the loss recorded during training of the model
+        """
         plt.plot(self.epoch_record,self.loss_record, label="Train Loss")
         plt.plot(self.epoch_record,self.val_record, label="Validation Loss")
         plt.title(f"{self.__class__.__name__} - Loss in function of training epochs")
@@ -130,6 +191,8 @@ class Model():
         plt.show()
         
     def plot_prediction(self, test_dataset, batch_size=32, target_transform=None):
+        """ Plot the prediction computed over the given dataset.
+        """
         test_data = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         
         predictions = []
@@ -154,7 +217,9 @@ class Model():
         plt.legend()
         plt.show()
         
-    def plot_accuracy(self):    
+    def plot_accuracy(self):
+        """ Plot the accuracy computed during training.
+        """  
         plt.plot(self.epoch_record,self.accuracy_record, label="Accuracy")
         plt.title(f"{self.__class__.__name__} - Accuracy in function of training epochs")
         plt.legend()
