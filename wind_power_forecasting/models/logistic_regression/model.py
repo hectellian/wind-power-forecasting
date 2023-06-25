@@ -32,10 +32,10 @@ class LogisticRegression(Model):
             outputs = torch.sigmoid(self.linear(x[:, -1, :]))
             return outputs
         
-    def __init__(self, in_dim: int, out_dim:int, learning_rate = 0.01, device = None) -> None:
+    def __init__(self, in_dim: int, out_dim:int, lr = 0.05, device = None) -> None:
         
         self.device = device
         self.model = self.Inner(in_dim,out_dim, device=self.device)
         self.criterion = torch.nn.BCELoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr = learning_rate)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), lr = lr)
 

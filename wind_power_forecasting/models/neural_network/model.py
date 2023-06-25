@@ -55,7 +55,7 @@ class LSTM(Model):
         forward
             Forward pass.
         """
-        def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int, device: str ='cpu') -> None:
+        def __init__(self, input_size: int, output_size: int, hidden_size:int, layer_num:int, device: str ='cpu') -> None:
             """Constructs all the necessary attributes for the NeuralNetwork object.
             
             Parameters
@@ -77,7 +77,7 @@ class LSTM(Model):
             self.layer_num = layer_num
             
             self.lstm = nn.LSTM(input_size, hidden_size, layer_num, batch_first=True)
-            self.fc = nn.Linear(hidden_size, output_size)
+            self.fc = nn.Linear(hidden_size, layer_num, output_size)
             
         def forward(self, x: torch.Tensor) -> torch.Tensor:
             """Forward pass.
@@ -100,7 +100,7 @@ class LSTM(Model):
             
             return out
         
-    def __init__(self, input_size: int, hidden_size: int, layer_num: int, output_size: int, device: str ='cpu', learning_rate: float = 0.01) -> None:
+    def __init__(self, input_size: int, hidden_size, layer_num, output_size: int, lr:float = 0.05, device: str ='cpu') -> None:
         """Constructs all the necessary attributes for the NeuralNetwork object.
         
         Parameters
@@ -115,8 +115,8 @@ class LSTM(Model):
             Number of outputs.
         learning_rate : float
             Learning rate.
-        """        
+        """
         self.device = device
-        self.model = self.Inner(input_size, hidden_size, layer_num, output_size, device=device).to(device)
+        self.model = self.Inner(input_size, output_size, hidden_size, layer_num, device=device).to(device)
         self.criterion = nn.MSELoss()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
