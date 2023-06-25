@@ -118,7 +118,7 @@ class KNN(Model):
         test_labels = []
         for i in range(len(test_data)):
             test_points, test_values = test_data[i]  
-            test_features.append(test_points.cpu().numpy())
+            test_features.extend(test_points.cpu().numpy())
             test_labels.append(test_values.cpu().numpy())
             
         outputs = self.predict(test_features)

@@ -43,7 +43,7 @@ class Model():
     def __call__(self, x):
         return self.predict(x)
 
-    def train(self, trial, train_dataset, validation_dataset, batch_size=32, epochs=200, record_freq=10):
+    def train(self, train_dataset, validation_dataset, batch_size=32, epochs=200, record_freq=10, trial=None):
         accuracy_history = []
         loss_record_list = []
         val_record_list = []
@@ -92,14 +92,15 @@ class Model():
                     val_record_list.append(val_loss)
                     accuracy_history.append(accuracy)
                     
-                    trial.report(val_loss, epoch)
-                    
-                    if trial.should_prune():
-                        raise optuna.TrialPruned()
+                    if trial is not None:
+                        trial.report(accuracy, epoch)
+                        
+                        if trial.should_prune():
+                            raise optuna.TrialPruned()
             
         print(f"{self.__class__.__name__} Training finished. Final Accuracy: {accuracy}")
         
-        self.accuracy_history = accuracy_history
+        self.accuracy_record = accuracy_history
         self.loss_record = loss_record_list
         self.val_record = val_record_list
         self.epoch_record = epoch_record_list
@@ -154,7 +155,7 @@ class Model():
         plt.show()
         
     def plot_accuracy(self):    
-        plt.plot(self.epoch_record,self.accuracy_history, label="Accuracy")
+        plt.plot(self.epoch_record,self.accuracy_record, label="Accuracy")
         plt.title(f"{self.__class__.__name__} - Accuracy in function of training epochs")
         plt.legend()
         plt.show()
