@@ -28,7 +28,9 @@ from sklearn.metrics import mean_absolute_error
 from ..model import Model
 
 class KNN(Model):
-    """K Nearest Neighbor class.
+    """K Nearest Neighbor class. 
+
+    The class is callable and calling it is equivalent to calling predict method.
 
     Attributes
     ----------
@@ -64,8 +66,15 @@ class KNN(Model):
 
         Parameters
         ----------
-        X: DataLoader
+        train_dataset
             The training datas
+
+        validation_dataset
+            The dataset over which accuracy is computed
+
+        Returns
+        -------
+            The resulting computed accuracy
         """
         features = []
         labels = []
@@ -100,20 +109,23 @@ class KNN(Model):
 
         Parameters
         ----------
-        x: torch.Tensor
-            The studied tensor
+        x
+            The studied data
 
         Returns
         -------
-        label: torch.tensor
             The computed label for x
         """
         return self.model.predict(x)
     
     def plot_loss(self):
+        """ This function doesn't do anything.
+        """
         return "Not plotabel since there is no loss function"
     
-    def plot_prediction(self, test_data, target_transform=None):  
+    def plot_prediction(self, test_data, target_transform=None):
+        """ Plot the prediction computed over the given dataset.
+        """
         test_features = []
         test_labels = []
         for i in range(len(test_data)):
