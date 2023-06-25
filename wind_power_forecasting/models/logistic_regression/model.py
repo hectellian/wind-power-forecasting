@@ -21,6 +21,10 @@ import torch
 from ..model import Model
 
 class LogisticRegression(Model):
+    """ The Logistic regression Model
+
+    See documentation of the Model Base Class.
+    """
 
     class Inner(torch.nn.Module):
 
@@ -33,7 +37,19 @@ class LogisticRegression(Model):
             return outputs
         
     def __init__(self, in_dim: int, out_dim:int, lr = 0.05, device = None) -> None:
-        
+        """Constructs the neccessary attributes and trains the model.
+
+        Parameters
+        ----------
+        in_dim: int
+            The input features dimension
+        out_dim: int
+            The label dimensions
+        lr: float
+            The learning rate of the model
+        device = None
+            The device where the computation are done, see torch doc.
+        """
         self.device = device
         self.model = self.Inner(in_dim,out_dim, device=self.device)
         self.criterion = torch.nn.BCELoss()
