@@ -17,88 +17,95 @@ __status__ = "Development"
 __version__ = "0.0.1"
 
 # Librairies
+import optuna
 import torch
 import numpy as np
-from torch.utils.data import DataLoader
-from sklearn.metrics import mean_squared_error
+from torch.utils.data import DataLoader, random_split
+from sklearn.metrics import mean_absolute_error
 from tqdm import tqdm
-import os
 import matplotlib.pyplot as plt
 
 class Model():
-
 
     class Inner(torch.nn.Module):
         pass
 
 
-    def __init__(self, learning_rate = 0.01) -> None:
+    def __init__(self) -> None:
         
         self.model = self.Inner()
         self.criterion = torch.nn.L1Loss()
         self.optimizer = torch.optim.Optimizer()
 
-
     def predict(self, x:torch.Tensor):
-        return self.model(x)
+        return self.model(x).to(x.device)
         
-
     def __call__(self, x):
         return self.predict(x)
 
-    def train(self, train_data:"DataLoader", validation_data:"DataLoader", epochs = 200_000, record_freq=1_000):
-        
+    def train(self, train_dataset, validation_dataset, batch_size=32, epochs=200, record_freq=10, trial=None):
         accuracy_history = []
         loss_record_list = []
         val_record_list = []
-        intermediate_loss_list = []
-        intermediate_val_list = []
+        
         epoch_record_list:"list[int]" = []
+        
+        # Create the dataloaders
+        train_data = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        validation_data = DataLoader(validation_dataset, batch_size=batch_size, shuffle=True)
 
-        for epoch in tqdm(range(int(epochs)),desc=f"{self.__class__.__name__} Trainining"):
-
+        for epoch in tqdm(range(int(epochs)),desc=f"{self.__class__.__name__} Training"):
+            intermediate_loss_list = []
             for batch_points, batch_values in train_data:
 
                 self.optimizer.zero_grad()
                 outputs = self.model(batch_points)
                 loss = self.criterion(outputs, batch_values)
 
+                intermediate_loss_list.append(loss.item())
+                
                 loss.backward()
                 self.optimizer.step()
 
             if epoch%record_freq == 0:
 
-                intermediate_loss_list.append(loss.item())
-                epoch_record_list.append(epoch)
+                epoch_record_list.append(epoch)      
+                loss_record_list.append(sum(intermediate_loss_list)/len(intermediate_loss_list))
 
-                predictions = []
                 true_labels = []
+                predicted_labels = []
+                intermediate_val_list = []
                 # TO not affect the computed weights
                 with torch.no_grad():
                     for batch_points, batch_values in validation_data:
 
                         outputs = self.model(batch_points)
                         loss = self.criterion(outputs, batch_values)
-                            
+                        
                         intermediate_val_list.append(loss.item())
-                            
-                        predictions.extend(outputs.cpu().numpy())
+                        
                         true_labels.extend(batch_values.cpu().numpy())
-
-                accuracy = torch.tensor(mean_squared_error(true_labels, predictions, squared=False))
-        
-                loss_record_list.append(sum(intermediate_loss_list)/len(intermediate_loss_list))
-                val_record_list.append(sum(intermediate_val_list)/len(intermediate_val_list))
-                accuracy_history.append(accuracy)
+                        predicted_labels.extend(outputs.cpu().numpy())
+            
+                    accuracy = mean_absolute_error(true_labels, predicted_labels)
+                    val_loss = sum(intermediate_val_list)/len(intermediate_val_list)
+                    val_record_list.append(val_loss)
+                    accuracy_history.append(accuracy)
+                    
+                    if trial is not None:
+                        trial.report(accuracy, epoch)
+                        
+                        if trial.should_prune():
+                            raise optuna.TrialPruned()
+            
+        print(f"{self.__class__.__name__} Training finished. Final Accuracy: {accuracy}")
         
         self.accuracy_record = accuracy_history
         self.loss_record = loss_record_list
         self.val_record = val_record_list
         self.epoch_record = epoch_record_list
-        
-        print(f"{self.__class__.__name__} Training finished. Final Accuracy: {accuracy_history[-1]}")
 
-        return loss_record_list.copy(), epoch_record_list.copy()
+        return loss_record_list.copy(), val_record_list.copy()
     
 
     def __str__(self) -> str:
@@ -122,7 +129,9 @@ class Model():
         plt.legend()
         plt.show()
         
-    def plot_prediction(self, test_data:"DataLoader", target_transform=None):
+    def plot_prediction(self, test_dataset, batch_size=32, target_transform=None):
+        test_data = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+        
         predictions = []
         true_labels = []
         # TO not affect the computed weights
@@ -146,7 +155,8 @@ class Model():
         plt.show()
         
     def plot_accuracy(self):    
-        plt.plot(self.epoch_record, self.accuracy_record)
-        plt.title(f"{self.__class__.__name__} - Accuracy of Active Power in function of training epochs")
+        plt.plot(self.epoch_record,self.accuracy_record, label="Accuracy")
+        plt.title(f"{self.__class__.__name__} - Accuracy in function of training epochs")
+        plt.legend()
         plt.show()
         
