@@ -25,6 +25,8 @@ from ..model import Model
 
 class LSTM(Model):
     """Wrapper class for the neural network.
+
+        See the documentation for the Model Base Class
     
         Attributes
         ----------
