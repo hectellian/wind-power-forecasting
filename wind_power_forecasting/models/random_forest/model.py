@@ -29,9 +29,27 @@ import optuna
 from ..model import Model
 
 class RandomForest(Model):
+    """ Random Forest class.
+
+    The class is callable and calling it is equivalent to calling predict method.
+    For more detail see the Model base class.
+
+    """
 
     def __init__(self, n_trees = 100, max_deph = None, verbose = 0, device = None) -> None:
-        
+        """Constructs the neccessary attributes and trains the model.
+
+        Parameters
+        ----------
+        n_trees: int = 100
+            The number of trees in the fprest
+        max_deph: int | None = None
+            The maximum deph of the trees, if is None will progress till all leaves are pure.
+        verbose: 0..10
+            The degree of verbose to be shown in training, 10 being the max
+        device = None
+            The device to run on, see torch doc.
+        """
         self.model = RandomForestRegressor(warm_start=True, n_estimators=n_trees, max_depth=max_deph)
         self.device = device
 
@@ -39,7 +57,32 @@ class RandomForest(Model):
         return self.model.predict(x)
 
     def train(self, train_dataset, validation_dataset, batch_size=32, epochs=200, record_freq=10, trial=None):
+        """  Trains the model according to the Datasets, and parameters. Returns the computed loss at the specied intervals.
 
+        Parameters
+        ----------
+            train_dataset
+                The dataset used to train the model
+
+            validation_dataset
+                The dataset uset to compute the metrics of the training
+
+            batch_size: int = 32
+                The size of a batch
+
+            epochs: int = 200
+                The number of epochs used in training
+
+            record_freq: int = 10
+                Every time epoch%record_freq == 0, the various metrics will be computed
+
+            trial: None
+                A parameter for optuna hyperparameter optimization
+            
+        Returns
+        -------
+            A copy of the computed metrics, which are also saved as an internal state
+        """
         accuracy_history = []
         loss_record_list = []
         val_record_list = []
@@ -107,6 +150,8 @@ class RandomForest(Model):
         return f"{self.__class__.__name__}: \n\t model: {self.model}"
     
     def plot_prediction(self, test_dataset, batch_size=32, target_transform=None):
+        """ Plot the prediction computed over the given dataset.
+        """
         test_data = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         
         predictions = []
