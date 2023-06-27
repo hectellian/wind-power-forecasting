@@ -133,6 +133,7 @@ class RandomForest(Model):
                 
                 if trial is not None:
                     trial.report(accuracy, epoch)      
+                    trial.report(val_loss, epoch)
                     if trial.should_prune():
                         raise optuna.TrialPruned()
 
@@ -171,8 +172,8 @@ class RandomForest(Model):
         if target_transform is not None:        
             true_labels = target_transform(true_labels)
         predictions = np.array(predictions)
-        plt.plot(predictions, label="Prediction Data")
-        plt.plot(true_labels, label="Real Data")
+        plt.plot(predictions, label="Prediction Data", color='#3f4853')
+        plt.plot(true_labels, label="Real Data", color='#81b5a8')
         plt.title(f"{self.__class__.__name__} - Active Power Prediction")
         plt.legend()
         plt.show()

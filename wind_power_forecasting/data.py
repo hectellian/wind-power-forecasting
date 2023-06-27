@@ -20,6 +20,7 @@ __version__ = "0.0.1"
 import torch
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 class CustomWindFarmDataset(torch.utils.data.Dataset):
     """A class to load the wind power production data.
@@ -30,6 +31,8 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         The data loaded from the data file.
     relative_positions : pandas.DataFrame
         The relative positions loaded from the relative position file.
+    q : int
+        The length of the sequence.
     device : str, optional
         The device to use for the data.
     transform : callable, optional
@@ -110,6 +113,16 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
             self.data.iloc[:, -1] = self.target_transform(self.data.iloc[:, -1].values.reshape(-1, 1))
         
         print("Cleaning done.")
+        
+    def features_size(self):
+        """Return the number of columns in the dataset.
+
+        Returns
+        -------
+        int
+            The number of columns in the dataset.
+        """
+        return len(self.data.columns) - 1
 
     def correlations(self, target):
         """Return the correlations of all the sequence with the target feature
@@ -128,6 +141,42 @@ class CustomWindFarmDataset(torch.utils.data.Dataset):
         target_correlations = correlation_matrix[target]
 
         return target_correlations
+    
+    def clean_correlations(self, target, threshold):
+        """Remove the features with a correlation lower than the threshold
+        
+        Parameters
+        ----------
+        target : srt
+            target column name
+        threshold : float
+            The threshold to use to remove the outliers.
+        """
+        corr_matrix = self.correlations(target)
+        corr_matrix = corr_matrix[np.abs(corr_matrix) > threshold]
+        self.data = self.data[corr_matrix.index]
+        
+    
+    def plot_correlations(self, target, threshold=None):
+        """Plot the correlations of all the sequence with the target feature
+        
+        Parameters
+        ----------
+        target : srt
+            target column name
+        threshold : float, optional
+            The threshold to use to remove the outliers.
+        """
+        target_correlations = self.correlations(target)
+            
+        target_correlations.plot.barh(color=['#81b5a8' if abs(x) > threshold else '#3f4853' for x in target_correlations])
+        plt.title("Correlations with " + target + "\n" + "Threshold: " + str(threshold))
+        plt.axvline(x=0, color='k', linewidth=1)
+        plt.axvline(x=threshold, color='r', linestyle='--', linewidth=1)
+        plt.axvline(x=-threshold, color='r', linestyle='--', linewidth=1)
+        plt.xlabel('Features', fontsize=16)
+        plt.xlabel(f'Correlation with {target}', fontsize=16)
+        plt.show()
     
     def __len__(self):
         """Returns the number of samples.

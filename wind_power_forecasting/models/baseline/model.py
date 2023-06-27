@@ -137,8 +137,8 @@ class KNN(Model):
         if target_transform is not None:
             outputs = target_transform(outputs)
             test_labels = target_transform(test_labels)
-        plt.plot(outputs, label="Prediction Data")
-        plt.plot(test_labels, label="Real Data")
+        plt.plot(outputs, label="Prediction Data", color='#3f4853')
+        plt.plot(test_labels, label="Real Data", color='#81b5a8')
         plt.title("KNN - Active Power Prediction")
         plt.legend()
         plt.show()

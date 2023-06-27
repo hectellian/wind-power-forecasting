@@ -150,6 +150,7 @@ class Model():
                     
                     if trial is not None:
                         trial.report(accuracy, epoch)
+                        trial.report(val_loss, epoch)
                         
                         if trial.should_prune():
                             raise optuna.TrialPruned()
@@ -184,8 +185,8 @@ class Model():
     def plot_loss(self):
         """ Plot the loss recorded during training of the model
         """
-        plt.plot(self.epoch_record,self.loss_record, label="Train Loss")
-        plt.plot(self.epoch_record,self.val_record, label="Validation Loss")
+        plt.plot(self.epoch_record,self.loss_record, label="Train Loss", color='#3f4853')
+        plt.plot(self.epoch_record,self.val_record, label="Validation Loss", color='#81b5a8')
         plt.title(f"{self.__class__.__name__} - Loss in function of training epochs")
         plt.legend()
         plt.show()
@@ -211,8 +212,8 @@ class Model():
         if target_transform is not None:        
             true_labels = target_transform(true_labels)
         predictions = np.array(predictions)
-        plt.plot(predictions, label="Prediction Data")
-        plt.plot(true_labels, label="Real Data")
+        plt.plot(predictions, label="Prediction Data", color='#3f4853')
+        plt.plot(true_labels, label="Real Data", color='#81b5a8')
         plt.title(f"{self.__class__.__name__} - Active Power Prediction")
         plt.legend()
         plt.show()
@@ -220,7 +221,7 @@ class Model():
     def plot_accuracy(self):
         """ Plot the accuracy computed during training.
         """  
-        plt.plot(self.epoch_record,self.accuracy_record, label="Accuracy")
+        plt.plot(self.epoch_record,self.accuracy_record, label="Accuracy", color='#3f4853')
         plt.title(f"{self.__class__.__name__} - Accuracy in function of training epochs")
         plt.legend()
         plt.show()
